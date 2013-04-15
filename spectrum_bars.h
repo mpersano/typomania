@@ -3,7 +3,7 @@
 
 #include "ogg_player.h"
 
-struct spectrum_bars {
+class spectrum_bars {
 public:
 	spectrum_bars(const ogg_player& player);
 

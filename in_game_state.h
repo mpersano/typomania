@@ -25,7 +25,7 @@ private:
 
 	int cur_tic;
 
-	std::vector<kashi::serifu>::const_iterator cur_serifu;
+	kashi::const_iterator cur_serifu;
 	int cur_serifu_ms;
 };
 

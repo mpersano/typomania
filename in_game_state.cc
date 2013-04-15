@@ -12,7 +12,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
 , spectrum(player)
 , cur_tic(0)
-, cur_serifu(cur_kashi.serifu_list.begin())
+, cur_serifu(cur_kashi.begin())
 , cur_serifu_ms(0)
 {
 	std::ostringstream path;
@@ -42,7 +42,7 @@ in_game_state::update()
 	player.update();
 	spectrum.update(cur_tic);
 
-	if (cur_serifu != cur_kashi.serifu_list.end()) {
+	if (cur_serifu != cur_kashi.end()) {
 		cur_serifu_ms += 1000/TICS_PER_SECOND;
 
 		const int duration = cur_serifu->duration;
@@ -65,7 +65,7 @@ in_game_state::on_key_down(int keysym)
 void
 in_game_state::draw_serifu() const
 {
-	if (cur_serifu == cur_kashi.serifu_list.end())
+	if (cur_serifu == cur_kashi.end())
 		return;
 
 	const kashi::serifu& serifu = *cur_serifu;
