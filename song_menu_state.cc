@@ -32,20 +32,27 @@ song_menu_state::redraw() const
 	float item_t = -ITEM_INTERVAL*cur_selection;
 
 	if (cur_state == STATE_MOVING_UP || cur_state == STATE_MOVING_DOWN) {
-		const float t = static_cast<float>(state_tics)/MOVE_TICS;
+		const float f = static_cast<float>(state_tics)/MOVE_TICS;
+		const float t = 1. - powf(1. - f, 3);
 		const float dt = cur_state == STATE_MOVING_UP ? 1 : -1;
 
 		item_t += t*dt*ITEM_INTERVAL;
 	}
 
+	const font::glyph *gi = small_font->find_glyph(L'X');
+	const float y_offset= .5*gi->height - gi->top;
+
+	glColor3f(1, 1, 1);
+
 	for (kashi_cont::const_iterator i = kashi_list.begin(); i != kashi_list.end(); i++) {
 		const float x = 300 + item_t*item_t*800;
 		const float y = .5*WINDOW_HEIGHT - item_t*800;
 
-		const float s = 1. - 5.*item_t*item_t;
+		const float s = 1.2 - 5.*item_t*item_t;
 
 		glPushMatrix();
-		glTranslatef(x, y, 0);
+
+		glTranslatef(x, y + s*y_offset, 0);
 		glScalef(s, s, 1);
 
 		draw_song_title(*i);
@@ -54,6 +61,15 @@ song_menu_state::redraw() const
 
 		item_t += ITEM_INTERVAL;
 	}
+
+	glDisable(GL_TEXTURE_2D);
+
+	glColor3f(1, 0, 0);
+
+	glBegin(GL_LINES);
+	glVertex2f(0, .5*WINDOW_HEIGHT);
+	glVertex2f(WINDOW_WIDTH, .5*WINDOW_HEIGHT);
+	glEnd();
 }
 
 void
