@@ -18,9 +18,20 @@ public:
 	void on_key_down(int keysym);
 
 private:
-	void draw_song_title(const kashi *p, float x, float y) const;
+	void draw_song_title(const kashi *p) const;
 
 	const kashi_cont& kashi_list;
+
+	enum state {
+		STATE_IDLE,
+		STATE_MOVING_UP,
+		STATE_MOVING_DOWN,
+	};
+
+	state cur_state;
+	int state_tics;
+
+	int cur_selection;
 };
 
 #endif // SONG_SELECTION_STATE_H_
