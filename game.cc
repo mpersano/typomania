@@ -9,6 +9,7 @@
 
 #include "panic.h"
 #include "in_game_state.h"
+#include "song_menu_state.h"
 #include "game.h"
 
 static const char *KASHI_DIR = "data/lyrics";
@@ -21,12 +22,13 @@ game::game()
 	if (kashi_list.empty())
 		panic("no songs loaded?");
 
-	start_in_game_state(*kashi_list[0]);
+	// start_in_game(*kashi_list[0]);
+	start_song_menu();
 }
 
 game::~game()
 {
-	for (std::vector<kashi *>::iterator i = kashi_list.begin(); i != kashi_list.end(); ++i)
+	for (kashi_cont::iterator i = kashi_list.begin(); i != kashi_list.end(); ++i)
 		delete *i;
 }
 
@@ -84,7 +86,13 @@ game::load_song_list()
 }
 
 void
-game::start_in_game_state(const kashi& cur_kashi)
+game::start_in_game(const kashi& cur_kashi)
 {
 	cur_state.reset(new in_game_state(cur_kashi));
+}
+
+void
+game::start_song_menu()
+{
+	cur_state.reset(new song_menu_state(kashi_list));
 }

@@ -29,6 +29,7 @@ kashi::load(const char *path)
 
 	char name[512], artist[512], genre[512], stream[512];
 	if (sscanf(line, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]", name, artist, genre, stream) != 4) {
+		fprintf(stderr, "borked 1\n");
 		fclose(in);
 		return 0;
 	}

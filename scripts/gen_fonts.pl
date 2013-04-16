@@ -14,8 +14,6 @@ my @glyphs = qw(32-126 12448-12543 12352-12447);
 my %kanji;
 
 for my $kashi (<../data/lyrics/*kashi>) {
-	print "$kashi\n";
-
 	open IN, $kashi;
 	binmode IN, ':utf8';
 	
@@ -26,5 +24,7 @@ for my $kashi (<../data/lyrics/*kashi>) {
 	close IN;
 }
 
+push @glyphs, (12288, (map { ord } keys %kanji));
+
 system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 12, '-I', 'tiny', 'font.ttf', @glyphs;
-system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 18, '-I', 'small', 'font.ttf', @glyphs, 12288, (map { ord } keys %kanji);
+system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', 'font.ttf', @glyphs;

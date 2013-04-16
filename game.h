@@ -29,10 +29,13 @@ public:
 private:
 	void load_song_list();
 
-	void start_in_game_state(const kashi& cur_kashi);
+	void start_in_game(const kashi& cur_kashi);
+	void start_song_menu();
 
 	std::auto_ptr<state> cur_state;
-	std::vector<kashi *> kashi_list;
+
+	typedef std::vector<kashi *> kashi_cont;
+	kashi_cont kashi_list;
 
 	game(const game&);
 	game& operator=(const game&);

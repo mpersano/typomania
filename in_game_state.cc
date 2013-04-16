@@ -19,7 +19,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
 	player.open(path.str());
-	player.start(1);
+	player.start(.2);
 
 	spectrum.update(0);
 }

@@ -14,6 +14,7 @@ CXXFILES =  \
 	gl_util.cc \
 	image.cc \
 	in_game_state.cc \
+	song_menu_state.cc \
 	kashi.cc \
 	main.cc \
 	ogg_player.cc \
