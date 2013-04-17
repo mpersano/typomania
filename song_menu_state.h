@@ -5,6 +5,8 @@
 
 class kashi;
 
+struct menu_item;
+
 class song_menu_state : public state {
 public:
 	typedef std::vector<kashi *> kashi_cont;
@@ -20,7 +22,8 @@ public:
 private:
 	void draw_song_title(const kashi *p) const;
 
-	const kashi_cont& kashi_list;
+	typedef std::vector<menu_item *> item_cont;
+	item_cont item_list;
 
 	enum state {
 		STATE_IDLE,
