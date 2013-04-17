@@ -1,5 +1,5 @@
-#ifndef GL_UTIL_H_
-#define GL_UTIL_H_
+#ifndef GL_VERTEX_ARRAY_H_
+#define GL_VERTEX_ARRAY_H_
 
 #include <GL/gl.h>
 
@@ -21,4 +21,4 @@
 #define WITH_COLOR
 #include "gl_vertex_array_base.h"
 
-#endif // GL_UTIL_H_
+#endif // GL_VERTEX_ARRAY_H_

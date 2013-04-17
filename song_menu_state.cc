@@ -35,6 +35,8 @@ struct menu_item {
 
 	font *small_font;
 	font *tiny_font;
+
+	gl_texture *border_texture;
 };
 
 menu_item::menu_item(const kashi *song)
@@ -44,7 +46,10 @@ menu_item::menu_item(const kashi *song)
 , song(song)
 , small_font(font_cache["data/fonts/small_font.fnt"])
 , tiny_font(font_cache["data/fonts/tiny_font.fnt"])
+, border_texture(texture_cache["data/images/item-border.png"])
 {
+	const float base_x = 8;
+
 	const font::glyph *small_glyph = small_font->find_glyph(L'X');
 	const float small_height = small_glyph->height;
 	const float small_top = small_glyph->top;
@@ -57,10 +62,10 @@ menu_item::menu_item(const kashi *song)
 	const float tiny_top = tiny_glyph->top;
 
 	// TODO: check these coords!
-	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level/10), 0, y_offset);
-	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level%10), small_width, y_offset);
+	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level/10), base_x, y_offset);
+	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level%10), base_x + small_width, y_offset);
 
-	const float x_offset = 2.5*small_width;
+	const float x_offset = base_x + 2.5*small_width;
 
 	gv_artist.add_string(tiny_font, &song->artist[0], x_offset + 2, y_offset + .5*small_height + (tiny_height - tiny_top) + 4);
 	gv_artist.add_string(tiny_font, &song->genre[0], x_offset + 2, y_offset - .5*small_height - 4);
@@ -78,25 +83,33 @@ menu_item::render(float pos) const
 	const vector2 p0 = get_item_position(pos - .5);
 	const vector2 p1 = get_item_position(pos + .5);
 
-	const float y0 = p0.y - 2;
-	const float y1 = p1.y + 2;
+	const float y0 = p0.y - 1;
+	const float y1 = p1.y + 1;
 
 	const float y = .5*(y0 + y1);
+
+	const float height = y0 - y1;
 
 	// draw border
 
 	glColor3f(.3, .3, .6);
 
-	glDisable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_2D);
 
-	glBegin(GL_QUADS);
+	gl_vertex_array_texuv gv_border(12);
 
-	glVertex2f(p.x, y0);
-	glVertex2f(WINDOW_WIDTH, y0);
-	glVertex2f(WINDOW_WIDTH, y1);
-	glVertex2f(p.x, y1);
+	gv_border.add_vertex(p.x, y0, 0, 0);
+	gv_border.add_vertex(p.x + height, y0, .9, 0);
+	gv_border.add_vertex(p.x + height, y1, .9, 1);
+	gv_border.add_vertex(p.x, y1, 0, 1);
 
-	glEnd();
+	gv_border.add_vertex(p.x + height, y0, .9, 0);
+	gv_border.add_vertex(WINDOW_WIDTH, y0, 1, 0);
+	gv_border.add_vertex(WINDOW_WIDTH, y1, 1, 1);
+	gv_border.add_vertex(p.x + height, y1, .9, 1);
+
+	border_texture->bind();
+	gv_border.draw(GL_QUADS);
 
 	// draw text
 
@@ -106,8 +119,6 @@ menu_item::render(float pos) const
 
 	glTranslatef(p.x, y, 0);
 	glScalef(s, s, 1);
-
-	glEnable(GL_TEXTURE_2D);
 
 	tiny_font->texture->bind();
 	gv_artist.draw(GL_QUADS);
