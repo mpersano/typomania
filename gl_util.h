@@ -21,8 +21,4 @@
 #define WITH_COLOR
 #include "gl_vertex_array.h"
 
-GLuint
-initialize_gl_texture(int texture_width, int texture_height, const unsigned char *texture_buf,
-  GLint internal_format, GLenum pixel_format);
-
 #endif // GL_UTIL_H_
