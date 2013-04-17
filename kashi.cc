@@ -52,9 +52,28 @@ kashi::load(const char *path)
 
 	fclose(in);
 
+	p->init_level();
+
 	return p;
 }
 
 kashi::serifu::serifu(int duration, const wstring& kanji, const wstring& kana)
 : duration(duration), kanji(kanji), kana(kana)
 { }
+
+void
+kashi::init_level()
+{
+	float top_kana_per_ms = 0;
+
+	for (serifu_cont::const_iterator i = serifu_list.begin(); i != serifu_list.end(); i++) {
+		float kana_per_ms = static_cast<float>(i->duration)/i->kana.size();
+
+		if (kana_per_ms > top_kana_per_ms)
+			top_kana_per_ms = kana_per_ms;
+	}
+
+	level = static_cast<int>(top_kana_per_ms/1000);
+	if (level >= 100)
+		level = 99;
+}

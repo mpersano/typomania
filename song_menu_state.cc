@@ -29,6 +29,7 @@ struct menu_item {
 
 	gl_vertex_array_texuv gv_artist;
 	gl_vertex_array_texuv gv_name;
+	gl_vertex_array_texuv gv_level;
 
 	const kashi *song;
 };
@@ -36,20 +37,30 @@ struct menu_item {
 menu_item::menu_item(const kashi *song)
 : gv_artist(256)
 , gv_name(256)
+, gv_level(12)
 , song(song)
 {
-	const font::glyph *gi = small_font->find_glyph(L'X');
+	const font::glyph *small_glyph = small_font->find_glyph(L'X');
+	const float small_height = small_glyph->height;
+	const float small_top = small_glyph->top;
+	const float small_width = small_glyph->width;
 
-	const float height = gi->height;
-	const float top = gi->top;
+	const float y_offset = .5*small_height - small_top;
 
-	const float y_offset = .5*height - top;
+	const font::glyph *tiny_glyph = tiny_font->find_glyph(L'X');
+	const float tiny_height = tiny_glyph->height;
+	const float tiny_top = tiny_glyph->top;
 
-	// TODO: replace this 24/16 crap with combination of height/top
-	gv_artist.add_string(tiny_font, &song->artist[0], 0, y_offset + 24);
-	gv_artist.add_string(tiny_font, &song->genre[0], 0, y_offset - 16);
+	// TODO: check these coords!
+	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level/10), 0, y_offset);
+	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level%10), small_width, y_offset);
 
-	gv_name.add_string(small_font, &song->name[0], 0, y_offset);
+	const float x_offset = 2.5*small_width;
+
+	gv_artist.add_string(tiny_font, &song->artist[0], x_offset + 2, y_offset + .5*small_height + (tiny_height - tiny_top) + 4);
+	gv_artist.add_string(tiny_font, &song->genre[0], x_offset + 2, y_offset - .5*small_height - 4);
+
+	gv_name.add_string(small_font, &song->name[0], x_offset, y_offset);
 }
 
 void
@@ -98,6 +109,7 @@ menu_item::render(float pos) const
 
 	glBindTexture(GL_TEXTURE_2D, small_font->texture_id);
 	gv_name.draw(GL_QUADS);
+	gv_level.draw(GL_QUADS);
 
 	glPopMatrix();
 }

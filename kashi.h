@@ -35,9 +35,13 @@ public:
 	wstring artist;
 	wstring genre;
 
+	int level;
+
 	std::string stream;
 
 private:
+	void init_level();
+
 	serifu_cont serifu_list;
 
 	kashi(const kashi&);
