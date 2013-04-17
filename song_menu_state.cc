@@ -10,6 +10,18 @@ enum {
 	MOVE_TICS = 20
 };
 
+static vector2
+get_item_position(const float t)
+{
+	return vector2(300 + t*t*800, .5*WINDOW_HEIGHT - 1000.*t/(1. + fabs(t)));
+}
+
+static float
+get_item_scale(const float t)
+{
+	return 1.2 - 7.*t*t;
+}
+
 song_menu_state::song_menu_state(const kashi_cont& kashi_list)
 : kashi_list(kashi_list)
 , cur_state(STATE_IDLE)
@@ -25,8 +37,6 @@ song_menu_state::redraw() const
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glEnable(GL_TEXTURE_2D);
-
 	const float ITEM_INTERVAL = .1;
 
 	float item_t = -ITEM_INTERVAL*cur_selection;
@@ -40,36 +50,44 @@ song_menu_state::redraw() const
 	}
 
 	const font::glyph *gi = small_font->find_glyph(L'X');
-	const float y_offset= .5*gi->height - gi->top;
+	const float y_offset = .5*gi->height - gi->top;
 
 	glColor3f(1, 1, 1);
 
 	for (kashi_cont::const_iterator i = kashi_list.begin(); i != kashi_list.end(); i++) {
-		const float x = 300 + item_t*item_t*800;
-		const float y = .5*WINDOW_HEIGHT - item_t*800;
-
-		const float s = 1.2 - 5.*item_t*item_t;
+		const vector2 p = get_item_position(item_t);
+		const float s = get_item_scale(item_t);
 
 		glPushMatrix();
 
-		glTranslatef(x, y + s*y_offset, 0);
+		glTranslatef(p.x, p.y + s*y_offset, 0);
 		glScalef(s, s, 1);
-
 		draw_song_title(*i);
-
 		glPopMatrix();
+
+		glDisable(GL_TEXTURE_2D);
+
+		const vector2 p0 = get_item_position(item_t - .5*ITEM_INTERVAL);
+		const vector2 p1 = get_item_position(item_t + .5*ITEM_INTERVAL);
+
+		const float y0 = p0.y - 2;
+		const float y1 = p1.y + 2;
+
+		glBegin(GL_LINES);
+
+		glVertex2f(p.x, y0);
+		glVertex2f(WINDOW_WIDTH, y0);
+
+		glVertex2f(p.x, y0);
+		glVertex2f(p.x, y1);
+
+		glVertex2f(p.x, y1);
+		glVertex2f(WINDOW_WIDTH, y1);
+
+		glEnd();
 
 		item_t += ITEM_INTERVAL;
 	}
-
-	glDisable(GL_TEXTURE_2D);
-
-	glColor3f(1, 0, 0);
-
-	glBegin(GL_LINES);
-	glVertex2f(0, .5*WINDOW_HEIGHT);
-	glVertex2f(WINDOW_WIDTH, .5*WINDOW_HEIGHT);
-	glEnd();
 }
 
 void
@@ -107,14 +125,14 @@ song_menu_state::on_key_down(int keysym)
 {
 	switch (keysym) {
 		case SDLK_UP:
-			if (cur_state == STATE_IDLE) {
+			if (cur_state == STATE_IDLE && cur_selection > 0) {
 				cur_state = STATE_MOVING_UP;
 				state_tics = 0;
 			}
 			break;
 
 		case SDLK_DOWN:
-			if (cur_state == STATE_IDLE) {
+			if (cur_state == STATE_IDLE && cur_selection < static_cast<int>(kashi_list.size()) - 1) {
 				cur_state = STATE_MOVING_DOWN;
 				state_tics = 0;
 			}
@@ -130,9 +148,11 @@ song_menu_state::draw_song_title(const kashi *p) const
 {
 	static gl_vertex_array_texuv gv(256);
 
+	glEnable(GL_TEXTURE_2D);
+
 	gv.reset();
-	gv.add_string(tiny_font, &p->artist[0], 1, 24);
-	gv.add_string(tiny_font, &p->genre[0], 1, -20);
+	gv.add_string(tiny_font, &p->artist[0], 0, 24);
+	gv.add_string(tiny_font, &p->genre[0], 0, -16);
 	glBindTexture(GL_TEXTURE_2D, tiny_font->texture_id);
 	gv.draw(GL_QUADS);
 
