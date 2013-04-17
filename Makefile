@@ -11,7 +11,7 @@ CXXFILES =  \
 	fft.cc \
 	font.cc \
 	game.cc \
-	gl_util.cc \
+	gl_vertex_array.cc \
 	gl_texture.cc \
 	image.cc \
 	in_game_state.cc \

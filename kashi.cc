@@ -28,10 +28,8 @@ kashi::load(const char *path)
 {
 	FILE *in;
 
-	if ((in = fopen(path, "r")) == 0) {
-		fprintf(stderr, "fopen failed on `%s': %s\n", path, strerror(errno));
+	if ((in = fopen(path, "r")) == 0)
 		return false;
-	}
 
 	char line[512];
 

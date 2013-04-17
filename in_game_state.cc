@@ -3,7 +3,7 @@
 #include <GL/gl.h>
 
 #include "common.h"
-#include "gl_util.h"
+#include "gl_vertex_array.h"
 #include "in_game_state.h"
 
 static const char *STREAM_DIR = "data/streams";

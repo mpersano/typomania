@@ -8,15 +8,14 @@
 #include <vector>
 
 #include <SDL.h>
+
 #include <GL/gl.h>
 
-#include "panic.h"
-#include "fft.h"
-#include "ogg_player.h"
-#include "kashi.h"
-#include "gl_util.h"
-#include "font.h"
+#include <AL/alc.h>
+#include <AL/al.h>
 
+#include "panic.h"
+#include "font.h"
 #include "common.h"
 #include "game.h"
 

@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "kashi.h"
-#include "gl_util.h"
+#include "gl_vertex_array.h"
 #include "song_menu_state.h"
 
 enum {

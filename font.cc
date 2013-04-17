@@ -7,7 +7,7 @@
 
 #include "panic.h"
 #include "vector2.h"
-#include "gl_util.h"
+#include "gl_vertex_array.h"
 #include "font.h"
 
 font::~font()
