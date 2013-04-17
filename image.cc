@@ -6,8 +6,8 @@
 #include "panic.h"
 #include "image.h"
 
-image *
-image::load_from_png(const char *path)
+bool
+image::load(const char *path)
 {
 	FILE *fp;
 
@@ -37,20 +37,19 @@ image::load_from_png(const char *path)
 	if (color_type != PNG_COLOR_TYPE_RGBA || bit_depth != 8)
 		panic("invalid color type or bit depth in PNG");
 
-	int width = png_get_image_width(png_ptr, info_ptr);
-	int height = png_get_image_height(png_ptr, info_ptr);
+	width = png_get_image_width(png_ptr, info_ptr);
+	height = png_get_image_height(png_ptr, info_ptr);
 
-	image *img = new image(width, height);
+	bits.resize(width*height);
 
 	png_bytep *rows = png_get_rows(png_ptr, info_ptr);
 
-	for (int i = 0; i < img->height; i++)
-		// memcpy(&img->bits[i*img->width], rows[i], img->width*sizeof img->bits[0]);
-		memcpy(&img->bits[i*img->width], rows[i], img->width*sizeof(unsigned));
+	for (int i = 0; i < height; i++)
+		memcpy(&bits[i*width], rows[i], width*sizeof(unsigned));
 
 	png_destroy_read_struct(&png_ptr, &info_ptr, 0);
 
 	fclose(fp);
 
-	return img;
+	return true;
 }

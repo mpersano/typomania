@@ -8,10 +8,10 @@
 
 class kashi {
 public:
-	static kashi *load(const char *path);
-
-	kashi(const wstring& name, const wstring& artist, const wstring& genre, const std::string& stream);
+	kashi();
 	~kashi();
+
+	bool load(const char *path);
 
 	struct serifu {
 		serifu(int duration, const wstring& kanji, const wstring& kana);

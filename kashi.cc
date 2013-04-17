@@ -1,65 +1,73 @@
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <cerrno>
 
 #include "panic.h"
 #include "kashi.h"
 
-kashi::kashi(const wstring& name, const wstring& artist, const wstring& genre, const std::string& stream)
-: name(name), artist(artist), genre(genre), stream(stream)
+static std::vector<char *>
+split(char *str, const char *delim)
+{
+	std::vector<char *> tokens;
+
+	for (char *p = strtok(str, delim); p; p = strtok(0, delim))
+		tokens.push_back(p);
+
+	return tokens;
+}
+
+kashi::kashi()
 { }
 
 kashi::~kashi()
 { }
 
-kashi *
+bool
 kashi::load(const char *path)
 {
 	FILE *in;
+
 	if ((in = fopen(path, "r")) == 0) {
 		fprintf(stderr, "fopen failed on `%s': %s\n", path, strerror(errno));
-		return 0;
+		return false;
 	}
 
 	char line[512];
+
 	if (!fgets(line, sizeof(line), in)) {
 		fclose(in);
-		return 0;
+		return false;
 	}
 
-	char name[512], artist[512], genre[512], stream[512];
-	if (sscanf(line, "%[^\t]\t%[^\t]\t%[^\t]\t%[^\n]", name, artist, genre, stream) != 4) {
-		fprintf(stderr, "borked 1\n");
+	std::vector<char *> tokens = split(line, "\t\n");
+	if (tokens.size() != 4) {
 		fclose(in);
-		return 0;
+		return false;
 	}
 
-	kashi *p = new kashi(utf8_to_wchar(name), utf8_to_wchar(artist), utf8_to_wchar(genre), stream);
+	name = utf8_to_wchar(tokens[0]);
+	artist = utf8_to_wchar(tokens[1]);
+	genre = utf8_to_wchar(tokens[2]);
+
+	stream = tokens[3];
 
 	while (fgets(line, sizeof(line), in)) {
-		int duration;
-		char kanji[512], kana[512];
-
-		if (sscanf(line, "%d\t%[^\t]\t%[^\n]", &duration, kanji, kana) != 3) {
-			fprintf(stderr, "borked: 2\n");
-			delete p;
+		std::vector<char *> tokens = split(line, "\t\n");
+		if (tokens.size() != 3) {
 			fclose(in);
-			return 0;
+			return false;
 		}
 
-		p->serifu_list.push_back(serifu(duration, utf8_to_wchar(kanji), utf8_to_wchar(kana)));
+		serifu_list.push_back(serifu(atoi(tokens[0]), utf8_to_wchar(tokens[1]), utf8_to_wchar(tokens[2])));
 	}
 
 	fclose(in);
 
-	p->init_level();
+	init_level();
 
-	return p;
+	return true;
 }
-
-kashi::serifu::serifu(int duration, const wstring& kanji, const wstring& kana)
-: duration(duration), kanji(kanji), kana(kana)
-{ }
 
 void
 kashi::init_level()
@@ -74,6 +82,11 @@ kashi::init_level()
 	}
 
 	level = static_cast<int>(top_kana_per_ms/1000);
+
 	if (level >= 100)
 		level = 99;
 }
+
+kashi::serifu::serifu(int duration, const wstring& kanji, const wstring& kana)
+: duration(duration), kanji(kanji), kana(kana)
+{ }

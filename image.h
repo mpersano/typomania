@@ -5,7 +5,15 @@
 
 class image {
 public:
-	static image *load_from_png(const char *path);
+	image()
+	: width(0), height(0)
+	{ }
+
+	image(int width, int height)
+	: width(width), height(height), bits(width*height)
+	{ }
+
+	bool load(const char *path);
 
 	int get_width() const
 	{ return width; }
@@ -17,15 +25,11 @@ public:
 	{ return &bits[0]; }
 
 private:
-	image(int width, int height)
-	: width(width), height(height), bits(width*height)
-	{ }
-
 	int width, height;
 	std::vector<unsigned> bits;
 
-	image(const image&);
-	image& operator=(const image&);
+	image(const image&); // disable copy ctor
+	image& operator=(const image&); // disable assignment
 };
 
 #endif // IMAGE_H_

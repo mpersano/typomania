@@ -104,10 +104,10 @@ menu_item::render(float pos) const
 
 	glEnable(GL_TEXTURE_2D);
 
-	glBindTexture(GL_TEXTURE_2D, tiny_font->texture_id);
+	tiny_font->texture.bind();
 	gv_artist.draw(GL_QUADS);
 
-	glBindTexture(GL_TEXTURE_2D, small_font->texture_id);
+	small_font->texture.bind();
 	gv_name.draw(GL_QUADS);
 	gv_level.draw(GL_QUADS);
 

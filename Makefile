@@ -12,6 +12,7 @@ CXXFILES =  \
 	font.cc \
 	game.cc \
 	gl_util.cc \
+	gl_texture.cc \
 	image.cc \
 	in_game_state.cc \
 	song_menu_state.cc \

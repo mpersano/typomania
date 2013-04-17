@@ -100,7 +100,7 @@ in_game_state::draw_serifu() const
 	gv.add_string(tiny_font, &serifu.kana[0], 10, 32);
 
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, tiny_font->texture_id);
+	tiny_font->texture.bind();
 
 	gv.draw(GL_QUADS);
 
@@ -108,7 +108,7 @@ in_game_state::draw_serifu() const
 	gv.add_string(small_font, &serifu.kanji[0], 10, 10);
 
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, small_font->texture_id);
+	small_font->texture.bind();
 
 	gv.draw(GL_QUADS);
 

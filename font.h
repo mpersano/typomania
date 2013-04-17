@@ -7,6 +7,7 @@
 #include <GL/gl.h>
 
 #include "vector2.h"
+#include "gl_texture.h"
 
 struct font {
 	static font *load(const char *texture_path, const char *font_path);
@@ -24,10 +25,7 @@ struct font {
 	int get_integer_width(int n) const;
 
 	std::map<int, glyph *> glyph_map;
-
-	GLuint texture_id;
-	int texture_width;
-	int texture_height;
+	gl_texture texture;
 };
 
 #endif /* FONT_H_ */

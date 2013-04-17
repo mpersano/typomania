@@ -76,9 +76,12 @@ game::load_song_list()
 
 			fprintf(stderr, "loading %s\n", path.str().c_str());
 
-			kashi *p = kashi::load(path.str().c_str());
-			if (p)
+			kashi *p = new kashi;
+
+			if (p->load(path.str().c_str()))
 				kashi_list.push_back(p);
+			else
+				delete p;
 		}
 	}
 

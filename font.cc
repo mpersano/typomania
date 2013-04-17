@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "panic.h"
-#include "image.h"
 #include "vector2.h"
 #include "gl_util.h"
 #include "font.h"
@@ -65,10 +64,8 @@ font::load(const char *texture_path, const char *font_path)
 {
 	font *p = new font;
 
-	std::auto_ptr<image> img(image::load_from_png(texture_path));
-
-	p->texture_id = initialize_gl_texture(img->get_width(), img->get_height(),
-	  reinterpret_cast<const unsigned char *>(img->get_bits()), GL_RGBA, GL_RGBA);
+	if (!p->texture.load(texture_path))
+		panic("failed to load texture");
 
 	FILE *fp;
 
