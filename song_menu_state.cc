@@ -32,6 +32,9 @@ struct menu_item {
 	gl_vertex_array_texuv gv_level;
 
 	const kashi *song;
+
+	font *small_font;
+	font *tiny_font;
 };
 
 menu_item::menu_item(const kashi *song)
@@ -39,6 +42,8 @@ menu_item::menu_item(const kashi *song)
 , gv_name(256)
 , gv_level(12)
 , song(song)
+, small_font(font_cache["data/fonts/small_font.fnt"])
+, tiny_font(font_cache["data/fonts/tiny_font.fnt"])
 {
 	const font::glyph *small_glyph = small_font->find_glyph(L'X');
 	const float small_height = small_glyph->height;
@@ -104,10 +109,10 @@ menu_item::render(float pos) const
 
 	glEnable(GL_TEXTURE_2D);
 
-	tiny_font->texture.bind();
+	tiny_font->texture->bind();
 	gv_artist.draw(GL_QUADS);
 
-	small_font->texture.bind();
+	small_font->texture->bind();
 	gv_name.draw(GL_QUADS);
 	gv_level.draw(GL_QUADS);
 

@@ -3,12 +3,14 @@
 
 #include <GL/gl.h>
 
+#include <string>
+
 class gl_texture {
 public:
 	gl_texture();
 	~gl_texture();
 
-	bool load(const char *path);
+	bool load(const std::string& path);
 
 	int get_width() const
 	{ return width; }

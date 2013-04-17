@@ -10,8 +10,9 @@
 #include "gl_texture.h"
 
 struct font {
-	static font *load(const char *texture_path, const char *font_path);
 	virtual ~font();
+
+	bool load(const std::string& path);
 
 	struct glyph {
 		int width, height;
@@ -24,8 +25,10 @@ struct font {
 	int get_string_width(const wchar_t *str) const;
 	int get_integer_width(int n) const;
 
-	std::map<int, glyph *> glyph_map;
-	gl_texture texture;
+	typedef std::map<int, glyph *> glyph_cont;
+	glyph_cont glyph_map;
+
+	gl_texture *texture;
 };
 
 #endif /* FONT_H_ */

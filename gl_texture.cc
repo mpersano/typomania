@@ -14,7 +14,7 @@ gl_texture::~gl_texture()
 }
 
 bool
-gl_texture::load(const char *path)
+gl_texture::load(const std::string& path)
 {
 	image img;
 

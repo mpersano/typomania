@@ -8,25 +8,20 @@
 #include "panic.h"
 #include "vector2.h"
 #include "gl_vertex_array.h"
+#include "common.h"
 #include "font.h"
 
 font::~font()
 {
-	std::map<int, glyph *>::iterator it;
-
-	for (it = glyph_map.begin(); it != glyph_map.end(); it++)
-		delete it->second;
+	for (glyph_cont::iterator i = glyph_map.begin(); i != glyph_map.end(); i++)
+		delete i->second;
 }
 
 const font::glyph *
 font::find_glyph(int code) const
 {
-	std::map<int, glyph *>::const_iterator it = glyph_map.find(code);
-
-	if (it == glyph_map.end())
-		panic("glyph %d not found", code);
-
-	return it->second;
+	glyph_cont::const_iterator i = glyph_map.find(code);
+	return i != glyph_map.end() ? i->second : 0;
 }
 
 int
@@ -59,20 +54,22 @@ font::get_integer_width(int n) const
 	return width;
 }
 
-font *
-font::load(const char *texture_path, const char *font_path)
+bool
+font::load(const std::string& path)
 {
-	font *p = new font;
-
-	if (!p->texture.load(texture_path))
-		panic("failed to load texture");
-
 	FILE *fp;
 
-	if ((fp = fopen(font_path, "rb")) == 0)
-		panic("failed to open font: %s", strerror(errno));
+	if ((fp = fopen(path.c_str(), "rb")) == 0)
+		return false;
 
-	char line[512];
+	char line[512], texture_path[512];
+
+	if (!fgets(line, sizeof(line), fp) || sscanf(line, "%s\n", texture_path) != 1) {
+		fclose(fp);
+		return false;
+	}
+
+	texture = texture_cache[texture_path];
 
 	while (fgets(line, sizeof(line), fp)) {
 		int code;
@@ -80,13 +77,15 @@ font::load(const char *texture_path, const char *font_path)
 
 		if (sscanf(line, "%d %d %d %d %d %d %d %f %f %f %f %f %f %f %f",
 		  &code, &g->width, &g->height, &g->left, &g->top, &g->advance_x, &g->advance_y,
-		  &g->t0.x, &g->t0.y, &g->t1.x, &g->t1.y, &g->t2.x, &g->t2.y, &g->t3.x, &g->t3.y) != 15)
-			panic("borked font file?");
+		  &g->t0.x, &g->t0.y, &g->t1.x, &g->t1.y, &g->t2.x, &g->t2.y, &g->t3.x, &g->t3.y) != 15) {
+			fclose(fp);
+			return false;
+		}
 
-		p->glyph_map[code] = g;
+		glyph_map[code] = g;
 	}
 
 	fclose(fp);
 
-	return p;
+	return true;
 }

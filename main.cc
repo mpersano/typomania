@@ -19,15 +19,13 @@
 #include "common.h"
 #include "game.h"
 
-static const char *IMAGE_DIR = "data/images";
-static const char *FONT_DIR = "data/fonts";
+resource_cache<gl_texture> texture_cache;
+resource_cache<font> font_cache;
 
 static ALCdevice *al_device;
 static ALCcontext *al_context;
 
 static bool running;
-
-font *small_font, *tiny_font;
 
 static std::auto_ptr<game> the_game;
 
@@ -68,25 +66,6 @@ release_openal()
 	alcMakeContextCurrent(NULL);
 	alcDestroyContext(al_context);
 	alcCloseDevice(al_device);
-}
-
-static font *
-load_font(const char *source)
-{
-	std::ostringstream texture_path;
-	texture_path << IMAGE_DIR << '/' << source << ".png";
-
-	std::ostringstream font_path;
-	font_path << FONT_DIR << '/' << source << ".fnt";
-
-	return font::load(texture_path.str().c_str(), font_path.str().c_str());
-}
-
-static void
-init_fonts()
-{
-	tiny_font = load_font("tiny_font");
-	small_font = load_font("small_font");
 }
 
 static void
@@ -153,7 +132,6 @@ init()
 {
 	init_sdl();
 	init_openal();
-	init_fonts();
 	the_game.reset(new game);
 }
 

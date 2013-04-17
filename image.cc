@@ -7,12 +7,12 @@
 #include "image.h"
 
 bool
-image::load(const char *path)
+image::load(const std::string& path)
 {
 	FILE *fp;
 
-	if ((fp = fopen(path, "rb")) == 0)
-		panic("failed to open `%s': %s", path, strerror(errno));
+	if ((fp = fopen(path.c_str(), "rb")) == 0)
+		panic("failed to open `%s': %s", path.c_str(), strerror(errno));
 
 	png_structp png_ptr;
 

@@ -2,6 +2,7 @@
 #define IMAGE_H_
 
 #include <vector>
+#include <string>
 
 class image {
 public:
@@ -13,7 +14,7 @@ public:
 	: width(width), height(height), bits(width*height)
 	{ }
 
-	bool load(const char *path);
+	bool load(const std::string& path);
 
 	int get_width() const
 	{ return width; }

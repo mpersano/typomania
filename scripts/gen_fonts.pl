@@ -26,5 +26,5 @@ for my $kashi (<../data/lyrics/*kashi>) {
 
 push @glyphs, (12288, (map { ord } keys %kanji));
 
-system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 10, '-I', 'tiny', 'font.ttf', @glyphs;
-system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', 'font.ttf', @glyphs;
+system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 10, '-I', 'tiny', '-p', 'data/images/', 'font.ttf', @glyphs;
+system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', '-p', 'data/images/', 'font.ttf', @glyphs;

@@ -68,6 +68,7 @@ struct glyph_range {
 
 static char ttf_filename[PATH_MAX + 1];
 static char font_basename[NAME_MAX];
+static char texture_path_prefix[PATH_MAX + 1];
 
 static int font_size;
 
@@ -624,6 +625,8 @@ write_fontdef(void)
 	if ((fp = fopen(fontdef_filename, "w")) == NULL)
 		panic("fopen");
 
+	fprintf(fp, "%s%s\n", texture_path_prefix, texture_filename);
+
 	const float ds = 1./texture_width;
 	const float dt = 1./texture_height;
 
@@ -683,6 +686,7 @@ usage(char *argv0)
 	fprintf(stderr, "  -g  color gradient ([from]-[to] colors, in hex)\n");
 	fprintf(stderr, "  -f  foreground color, in hex\n");
 	fprintf(stderr, "  -b  background color, in hex\n");
+	fprintf(stderr, "  -p  texture path prefix\n");
 
 	exit(1);
 }
@@ -701,7 +705,7 @@ main(int argc, char *argv[])
 	bg_color = 0x00000000;
 	fg_color = 0x00ffffff;
 
-	while ((c = getopt(argc, argv, "S:s:e:I:W:H:g:htdb:f:")) != EOF) {
+	while ((c = getopt(argc, argv, "S:s:e:I:W:H:g:htdb:f:p:")) != EOF) {
 		char *after;
 
 		switch (c) {
@@ -712,8 +716,7 @@ main(int argc, char *argv[])
 				break;
 
 			case 'I':
-				strncpy(font_basename, optarg,
-				  sizeof font_basename);
+				strncpy(font_basename, optarg, sizeof font_basename);
 				break;
 
 			case 'W':
@@ -758,6 +761,10 @@ main(int argc, char *argv[])
 			case 'f':
 				if (sscanf(optarg, "%x", &fg_color) != 1)
 					usage(*argv);
+				break;
+
+			case 'p':
+				strncpy(texture_path_prefix, optarg, sizeof texture_path_prefix);
 				break;
 
 			case 'h':

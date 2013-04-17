@@ -14,6 +14,8 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , cur_tic(0)
 , cur_serifu(cur_kashi.begin())
 , cur_serifu_ms(0)
+, small_font(font_cache["data/fonts/small_font.fnt"])
+, tiny_font(font_cache["data/fonts/tiny_font.fnt"])
 {
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
@@ -100,7 +102,7 @@ in_game_state::draw_serifu() const
 	gv.add_string(tiny_font, &serifu.kana[0], 10, 32);
 
 	glEnable(GL_TEXTURE_2D);
-	tiny_font->texture.bind();
+	tiny_font->texture->bind();
 
 	gv.draw(GL_QUADS);
 
@@ -108,7 +110,7 @@ in_game_state::draw_serifu() const
 	gv.add_string(small_font, &serifu.kanji[0], 10, 10);
 
 	glEnable(GL_TEXTURE_2D);
-	small_font->texture.bind();
+	small_font->texture->bind();
 
 	gv.draw(GL_QUADS);
 

@@ -5,6 +5,8 @@
 #include "spectrum_bars.h"
 #include "game.h"
 
+struct font;
+
 class in_game_state : public state {
 public:
 	in_game_state(const kashi& cur_kashi);
@@ -27,6 +29,9 @@ private:
 
 	kashi::const_iterator cur_serifu;
 	int cur_serifu_ms;
+
+	font *small_font;
+	font *tiny_font;
 };
 
 #endif // IN_GAME_STATE_H_
