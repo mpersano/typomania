@@ -7,7 +7,7 @@
 #include "song_menu_state.h"
 
 enum {
-	MOVE_TICS = 20
+	MOVE_TICS = 15
 };
 
 static vector2
@@ -42,7 +42,7 @@ struct menu_item {
 menu_item::menu_item(const kashi *song)
 : gv_artist(256)
 , gv_name(256)
-, gv_level(12)
+, gv_level(8)
 , song(song)
 , small_font(font_cache["data/fonts/small_font.fnt"])
 , tiny_font(font_cache["data/fonts/tiny_font.fnt"])
@@ -96,7 +96,7 @@ menu_item::render(float pos) const
 
 	glEnable(GL_TEXTURE_2D);
 
-	gl_vertex_array_texuv gv_border(12);
+	gl_vertex_array_texuv gv_border(8);
 
 	gv_border.add_vertex(p.x, y0, 0, 0);
 	gv_border.add_vertex(p.x + height, y0, .9, 0);
@@ -104,8 +104,8 @@ menu_item::render(float pos) const
 	gv_border.add_vertex(p.x, y1, 0, 1);
 
 	gv_border.add_vertex(p.x + height, y0, .9, 0);
-	gv_border.add_vertex(WINDOW_WIDTH, y0, 1, 0);
-	gv_border.add_vertex(WINDOW_WIDTH, y1, 1, 1);
+	gv_border.add_vertex(WINDOW_WIDTH, y0, .95, 0);
+	gv_border.add_vertex(WINDOW_WIDTH, y1, .95, 1);
 	gv_border.add_vertex(p.x + height, y1, .9, 1);
 
 	border_texture->bind();

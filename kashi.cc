@@ -73,13 +73,13 @@ kashi::init_level()
 	float top_kana_per_ms = 0;
 
 	for (serifu_cont::const_iterator i = serifu_list.begin(); i != serifu_list.end(); i++) {
-		float kana_per_ms = static_cast<float>(i->duration)/i->kana.size();
+		float kana_per_ms = static_cast<float>(i->kana.size())/i->duration;
 
 		if (kana_per_ms > top_kana_per_ms)
 			top_kana_per_ms = kana_per_ms;
 	}
 
-	level = static_cast<int>(top_kana_per_ms/1000);
+	level = static_cast<int>(top_kana_per_ms*3000.);
 
 	if (level >= 100)
 		level = 99;
