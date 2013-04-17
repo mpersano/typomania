@@ -20,8 +20,6 @@ public:
 	void on_key_down(int keysym);
 
 private:
-	void draw_song_title(const kashi *p) const;
-
 	typedef std::vector<menu_item *> item_cont;
 	item_cont item_list;
 

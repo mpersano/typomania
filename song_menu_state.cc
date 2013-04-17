@@ -25,7 +25,7 @@ get_item_scale(const float t)
 struct menu_item {
 	menu_item(const kashi *song);
 
-	void render() const;
+	void render(float pos) const;
 
 	gl_vertex_array_texuv gv_artist;
 	gl_vertex_array_texuv gv_name;
@@ -53,8 +53,44 @@ menu_item::menu_item(const kashi *song)
 }
 
 void
-menu_item::render() const
+menu_item::render(float pos) const
 {
+	const vector2 p = get_item_position(pos);
+
+	const float s = get_item_scale(pos);
+
+	const vector2 p0 = get_item_position(pos - .5);
+	const vector2 p1 = get_item_position(pos + .5);
+
+	const float y0 = p0.y - 2;
+	const float y1 = p1.y + 2;
+
+	const float y = .5*(y0 + y1);
+
+	// draw border
+
+	glColor3f(.3, .3, .6);
+
+	glDisable(GL_TEXTURE_2D);
+
+	glBegin(GL_QUADS);
+
+	glVertex2f(p.x, y0);
+	glVertex2f(WINDOW_WIDTH, y0);
+	glVertex2f(WINDOW_WIDTH, y1);
+	glVertex2f(p.x, y1);
+
+	glEnd();
+
+	// draw text
+
+	glColor3f(1, 1, 1);
+
+	glPushMatrix();
+
+	glTranslatef(p.x, y, 0);
+	glScalef(s, s, 1);
+
 	glEnable(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, tiny_font->texture_id);
@@ -62,6 +98,8 @@ menu_item::render() const
 
 	glBindTexture(GL_TEXTURE_2D, small_font->texture_id);
 	gv_name.draw(GL_QUADS);
+
+	glPopMatrix();
 }
 
 song_menu_state::song_menu_state(const kashi_cont& kashi_list)
@@ -84,59 +122,19 @@ song_menu_state::redraw() const
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	float item_t = -cur_selection;
+	float pos = -cur_selection;
 
 	if (cur_state == STATE_MOVING_UP || cur_state == STATE_MOVING_DOWN) {
 		const float f = static_cast<float>(state_tics)/MOVE_TICS;
-		const float dt = 1. - powf(1. - f, 3);
+		const float offs = 1. - powf(1. - f, 3);
 		const float dir = cur_state == STATE_MOVING_UP ? 1 : -1;
 
-		item_t += dt*dir;
+		pos += offs*dir;
 	}
 
-	// TODO: do the coloring in menu_item
-	glColor3f(1, 1, 1);
-
 	for (item_cont::const_iterator i = item_list.begin(); i != item_list.end(); i++) {
-		// TODO: move positioning/scaling/border drawing to menu_item
-
-		const vector2 p = get_item_position(item_t);
-
-		const float s = get_item_scale(item_t);
-
-		const vector2 p0 = get_item_position(item_t - .5);
-		const vector2 p1 = get_item_position(item_t + .5);
-
-		const float y0 = p0.y - 2;
-		const float y1 = p1.y + 2;
-
-		const float y = .5*(y0 + y1);
-
-		glPushMatrix();
-
-		glTranslatef(p.x, y, 0);
-		glScalef(s, s, 1);
-		(*i)->render();
-		glPopMatrix();
-
-		// TODO: textured border
-
-		glDisable(GL_TEXTURE_2D);
-
-		glBegin(GL_LINES);
-
-		glVertex2f(p.x, y0);
-		glVertex2f(WINDOW_WIDTH, y0);
-
-		glVertex2f(p.x, y0);
-		glVertex2f(p.x, y1);
-
-		glVertex2f(p.x, y1);
-		glVertex2f(WINDOW_WIDTH, y1);
-
-		glEnd();
-
-		++item_t;
+		(*i)->render(pos);
+		++pos;
 	}
 }
 
@@ -191,23 +189,4 @@ song_menu_state::on_key_down(int keysym)
 		default:
 			break;
 	}
-}
-
-void
-song_menu_state::draw_song_title(const kashi *p) const
-{
-	static gl_vertex_array_texuv gv(256);
-
-	glEnable(GL_TEXTURE_2D);
-
-	gv.reset();
-	gv.add_string(tiny_font, &p->artist[0], 0, 24);
-	gv.add_string(tiny_font, &p->genre[0], 0, -16);
-	glBindTexture(GL_TEXTURE_2D, tiny_font->texture_id);
-	gv.draw(GL_QUADS);
-
-	gv.reset();
-	gv.add_string(small_font, &p->name[0], 0, 0);
-	glBindTexture(GL_TEXTURE_2D, small_font->texture_id);
-	gv.draw(GL_QUADS);
 }
