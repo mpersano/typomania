@@ -3,6 +3,7 @@
 #include <cerrno>
 
 #include <sstream>
+#include <algorithm>
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -14,6 +15,12 @@
 
 static const char *KASHI_DIR = "data/lyrics";
 static const char *KASHI_EXT = ".kashi";
+
+static bool
+kashi_compare(const kashi *a, const kashi *b)
+{
+	return a->level < b->level;
+}
 
 game::game()
 {
@@ -85,6 +92,8 @@ game::load_song_list()
 	}
 
 	closedir(dir);
+
+	std::sort(kashi_list.begin(), kashi_list.end(), kashi_compare);
 }
 
 void
