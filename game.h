@@ -26,11 +26,11 @@ public:
 	void on_key_up(int keysym);
 	void on_key_down(int keysym);
 
-private:
-	void load_song_list();
-
 	void start_in_game(const kashi& cur_kashi);
 	void start_song_menu();
+
+private:
+	void load_song_list();
 
 	std::auto_ptr<state> cur_state;
 
@@ -40,5 +40,7 @@ private:
 	game(const game&);
 	game& operator=(const game&);
 };
+
+typedef std::auto_ptr<game> game_ptr;
 
 #endif // GAME_H_

@@ -1,5 +1,6 @@
 #include <sstream>
 
+#include <SDL.h>
 #include <GL/gl.h>
 
 #include "common.h"
@@ -22,9 +23,9 @@ static const struct kana_to_romaji {
 	{ L'や', "YA" }, { L'ゆ', "YU" }, { L'よ', "YO" },
 	{ L'ら', "RA" }, { L'り', "RI" }, { L'る', "RU" }, { L'れ', "RE" }, { L'ろ', "RO" },
 	{ L'わ', "WA" }, { L'を', "WO" },
-	{ L'ん', "N"  },
+	{ L'ん', "N"  }, { L'っ', "T"  },
 	{ L'が', "GA" }, { L'ぎ', "GI" }, { L'ぐ', "GU" }, { L'げ', "GE" }, { L'ご', "GO" },
-	{ L'ざ', "ZA" }, { L'じ', "JI" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
+	{ L'ざ', "ZA" }, { L'じ', "ZI" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
 	{ L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "DU" }, { L'で', "DE" }, { L'ど', "DO" },
 	{ L'ば', "BA" }, { L'び', "BI" }, { L'ぶ', "BU" }, { L'べ', "BE" }, { L'ぼ', "BO" },
 	{ L'ぱ', "PA" }, { L'ぴ', "PI" }, { L'ぷ', "PU" }, { L'ぺ', "PE" }, { L'ぽ', "PO" },
@@ -113,6 +114,11 @@ in_game_state::on_key_up(int keysym)
 void
 in_game_state::on_key_down(int keysym)
 {
+	if (keysym == SDLK_ESCAPE) {
+		the_game->start_song_menu();
+		return;
+	}
+
 	if (keysym >= 'a' && keysym <= 'z')
 		keysym += 'A' - 'a';
 

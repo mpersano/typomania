@@ -214,6 +214,11 @@ song_menu_state::on_key_down(int keysym)
 			}
 			break;
 
+		case SDLK_RETURN:
+			if (cur_state == STATE_IDLE)
+				the_game->start_in_game(*item_list[cur_selection]->song);
+			break;
+
 		default:
 			break;
 	}

@@ -22,12 +22,12 @@
 resource_cache<gl_texture> texture_cache;
 resource_cache<font> font_cache;
 
+game_ptr the_game;
+
 static ALCdevice *al_device;
 static ALCcontext *al_context;
 
 static bool running;
-
-static std::auto_ptr<game> the_game;
 
 static void
 init_sdl()
