@@ -11,7 +11,7 @@ use constant {
 
 binmode STDOUT, ':utf8';
 
-my @glyphs = qw(32-126 12448-12543 12352-12447);
+my @glyphs = qw(32-126 12448-12543 12352-12447 12288 12293 65281-65374);
 
 my %kanji;
 
@@ -26,7 +26,7 @@ for my $kashi (<../data/lyrics/*kashi>) {
 	close IN;
 }
 
-push @glyphs, (12288, (map { ord } keys %kanji));
+push @glyphs, (map { ord } keys %kanji);
 
 system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 10, '-I', 'tiny', '-p', IMAGE_PATH, FONT, @glyphs;
 system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', '-p', IMAGE_PATH, FONT, @glyphs;

@@ -7,7 +7,7 @@
 #include "song_menu_state.h"
 
 enum {
-	MOVE_TICS = 15
+	MOVE_TICS = 20
 };
 
 static vector2

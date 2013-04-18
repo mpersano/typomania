@@ -2,7 +2,7 @@
 #define COMMON_H_
 
 enum {
-	TICS_PER_SECOND = 30,
+	TICS_PER_SECOND = 60,
 
 	WINDOW_WIDTH = 800,
 	WINDOW_HEIGHT = 400,
