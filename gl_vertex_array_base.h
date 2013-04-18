@@ -40,7 +40,7 @@ public:
 #endif
 
 #ifdef WITH_TEXUV
-	void add_string(const font *fi, const wchar_t *str,
+	float add_string(const font *fi, const wchar_t *str,
 #ifdef WITH_COLOR
 	  int r, int g, int b, int a,
 #endif
@@ -48,7 +48,7 @@ public:
 #endif
 
 #ifdef WITH_TEXUV
-	void add_string_centered(const font *fi, const wchar_t *str,
+	float add_stringn(const font *fi, const wchar_t *str, int size,
 #ifdef WITH_COLOR
 	  int r, int g, int b, int a,
 #endif

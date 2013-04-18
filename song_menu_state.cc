@@ -13,7 +13,7 @@ enum {
 static vector2
 get_item_position(const float t)
 {
-	return vector2(300. + 8.*t*t, .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t)));
+	return vector2(300. + 15.*t*t, .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t)));
 }
 
 static float

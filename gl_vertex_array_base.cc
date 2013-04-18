@@ -101,7 +101,7 @@ NAME::add_glyph(const font::glyph *gi,
 #endif
 
 #ifdef WITH_TEXUV
-void
+float
 NAME::add_string(const font *fi, const wchar_t *str,
 #ifdef WITH_COLOR
 		int r, int g, int b, int a,
@@ -117,22 +117,30 @@ NAME::add_string(const font *fi, const wchar_t *str,
 		  x, y);
 		x += gi->advance_x;
 	}
+
+	return x;
 }
 #endif
 
 #ifdef WITH_TEXUV
-void
-NAME::add_string_centered(const font *fi, const wchar_t *str,
+float
+NAME::add_stringn(const font *fi, const wchar_t *str, int n,
 #ifdef WITH_COLOR
 		int r, int g, int b, int a,
 #endif
 		float x, float y)
 {
-	add_string(fi, str,
+	for (int i = 0; i < n && str[i]; i++) {
+		const font::glyph *gi = fi->find_glyph(str[i]);
+		add_glyph(gi,
 #ifdef WITH_COLOR
-	  r, g, b, a,
-#endif
-	  x - .5*fi->get_string_width(str), y);
+		  r, g, b, a, 
+#endif 
+		  x, y);
+		x += gi->advance_x;
+	}
+
+	return x;
 }
 #endif
 

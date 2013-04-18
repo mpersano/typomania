@@ -63,10 +63,10 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
-	// player.open(path.str());
-	// player.start(.2);
+	player.open(path.str());
+	player.start(.1);
 
-	// spectrum.update(0);
+	spectrum.update(0);
 }
 
 in_game_state::~in_game_state()
@@ -75,7 +75,7 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	// spectrum.draw();
+	spectrum.draw();
 
 	draw_time_bars();
 	draw_serifu();
@@ -87,8 +87,8 @@ in_game_state::update()
 {
 	++cur_tic;
 
-	// player.update();
-	// spectrum.update(cur_tic);
+	player.update();
+	spectrum.update(cur_tic);
 
 	if (cur_serifu != cur_kashi.end()) {
 		cur_serifu_ms += 1000/TICS_PER_SECOND;
@@ -117,7 +117,6 @@ in_game_state::on_key_down(int keysym)
 		keysym += 'A' - 'a';
 
 	const wchar_t *kana = &cur_serifu->kana[cur_input_index];
-
 	const char *input = get_input_for(*kana);
 
 	if (input) {
@@ -127,7 +126,7 @@ in_game_state::on_key_down(int keysym)
 				cur_input_part_index = 0;
 			}
 
-			// TODO: increase score
+			// TODO: increase score, combo
 		} else {
 			// TODO: increase miss
 
@@ -174,23 +173,32 @@ in_game_state::draw_serifu() const
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	glColor3f(1, 1, 0);
+	const float base_x = 20;
 
 	static gl_vertex_array_texuv gv(256);
-	gv.reset();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_TEXTURE_2D);
 
-	gv.add_string(tiny_font, &cur_serifu->kana[0], 20, 96);
 	tiny_font->texture->bind();
+
+	glColor3f(1, 1, 0);
+	gv.reset();
+	float next_x = gv.add_stringn(tiny_font, &cur_serifu->kana[0], cur_input_index, base_x, 96);
 	gv.draw(GL_QUADS);
 
+	glColor3f(1, 1, 1);
 	gv.reset();
-	gv.add_string(small_font, &cur_serifu->kanji[0], 20, 70);
+	gv.add_string(tiny_font, &cur_serifu->kana[cur_input_index], next_x, 96);
+	gv.draw(GL_QUADS);
+
 	small_font->texture->bind();
+
+	glColor3f(1, 1, 1);
+	gv.reset();
+	gv.add_string(small_font, &cur_serifu->kanji[0], base_x, 70);
 	gv.draw(GL_QUADS);
 }
 
@@ -201,7 +209,7 @@ in_game_state::draw_input_queue() const
 		return;
 
 	const float base_y = 30;
-	float x = 20;
+	const float base_x = 20;
 
 	const font::glyph *big_glyph = big_az_font->find_glyph(L'X');
 	const float big_y = base_y + .5*big_glyph->height - big_glyph->top;
@@ -212,10 +220,11 @@ in_game_state::draw_input_queue() const
 	static gl_vertex_array_texuv gv(256);
 
 	const wchar_t *kana = &cur_serifu->kana[cur_input_index];
-
 	const char *input = get_input_for(*kana);
 
 	if (input) {
+		float x = base_x;
+
 		input += cur_input_part_index;
 
 		gv.reset();
