@@ -4,7 +4,9 @@ use strict;
 use utf8;
 
 use constant {
-	DUMPGLYPHS => './dumpglyphs'
+	DUMPGLYPHS => './dumpglyphs',
+	IMAGE_PATH => 'data/images/',
+	FONT => 'font.ttf',
 };
 
 binmode STDOUT, ':utf8';
@@ -26,5 +28,6 @@ for my $kashi (<../data/lyrics/*kashi>) {
 
 push @glyphs, (12288, (map { ord } keys %kanji));
 
-system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 10, '-I', 'tiny', '-p', 'data/images/', 'font.ttf', @glyphs;
-system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', '-p', 'data/images/', 'font.ttf', @glyphs;
+system DUMPGLYPHS, '-W', 512, '-H', 512, '-S', 10, '-I', 'tiny', '-p', IMAGE_PATH, FONT, @glyphs;
+system DUMPGLYPHS, '-W', 512, '-H', 1024, '-S', 18, '-I', 'small', '-p', IMAGE_PATH, FONT, @glyphs;
+system DUMPGLYPHS, '-W', 256, '-H', 256, '-S', 36, '-I', 'big_az', '-p', IMAGE_PATH, FONT, ord('A').'-'.ord('Z')

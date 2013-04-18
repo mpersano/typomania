@@ -11,24 +11,42 @@ static const char *STREAM_DIR = "data/streams";
 static const struct kana_to_romaji {
 	const wchar_t kana;
 	const char *romaji;
-} kana_to_romaji[] = {
-	{ L'あ', "a"  }, { L'い', "i"  }, { L'う', "u"  }, { L'え', "e"  }, { L'お', "o"  },
-	{ L'か', "ka" }, { L'き', "ki" }, { L'く', "ku" }, { L'け', "ke" }, { L'こ', "ko" },
-	{ L'さ', "sa" }, { L'し', "si" }, { L'す', "su" }, { L'せ', "se" }, { L'そ', "so" },
-	{ L'た', "ta" }, { L'ち', "ti" }, { L'つ', "tu" }, { L'て', "te" }, { L'と', "to" },
-	{ L'な', "na" }, { L'に', "ni" }, { L'ぬ', "nu" }, { L'ね', "ne" }, { L'の', "no" },
-	{ L'は', "ha" }, { L'ひ', "hi" }, { L'ふ', "fu" }, { L'へ', "he" }, { L'ほ', "ho" },
-	{ L'ま', "ma" }, { L'み', "mi" }, { L'む', "mu" }, { L'め', "me" }, { L'も', "mo" },
-	{ L'や', "ya" }, { L'ゆ', "yu" }, { L'よ', "yo" },
-	{ L'ら', "ra" }, { L'り', "ri" }, { L'る', "ru" }, { L'れ', "re" }, { L'ろ', "ro" },
-	{ L'わ', "wa" }, { L'を', "wo" },
-	{ L'が', "ga" }, { L'ぎ', "gi" }, { L'ぐ', "gu" }, { L'げ', "ge" }, { L'ご', "go" },
-	{ L'ざ', "za" }, { L'じ', "ji" }, { L'ず', "zu" }, { L'ぜ', "ze" }, { L'ぞ', "zo" },
-	{ L'だ', "da" }, { L'ぢ', "di" }, { L'づ', "du" }, { L'で', "de" }, { L'ど', "do" },
-	{ L'ば', "ba" }, { L'び', "bi" }, { L'ぶ', "bu" }, { L'べ', "be" }, { L'ぼ', "bo" },
-	{ L'ぱ', "pa" }, { L'ぴ', "pi" }, { L'ぷ', "pu" }, { L'ぺ', "pe" }, { L'ぽ', "po" },
+} kana_to_romaji_table[] = {
+	{ L'あ', "A"  }, { L'い', "I"  }, { L'う', "U"  }, { L'え', "E"  }, { L'お', "O"  },
+	{ L'か', "KA" }, { L'き', "KI" }, { L'く', "KU" }, { L'け', "KE" }, { L'こ', "KO" },
+	{ L'さ', "SA" }, { L'し', "SI" }, { L'す', "SU" }, { L'せ', "SE" }, { L'そ', "SO" },
+	{ L'た', "TA" }, { L'ち', "TI" }, { L'つ', "TU" }, { L'て', "TE" }, { L'と', "TO" },
+	{ L'な', "NA" }, { L'に', "NI" }, { L'ぬ', "NU" }, { L'ね', "NE" }, { L'の', "NO" },
+	{ L'は', "HA" }, { L'ひ', "HI" }, { L'ふ', "HU" }, { L'へ', "HE" }, { L'ほ', "HO" },
+	{ L'ま', "MA" }, { L'み', "MI" }, { L'む', "MU" }, { L'め', "ME" }, { L'も', "MO" },
+	{ L'や', "YA" }, { L'ゆ', "YU" }, { L'よ', "YO" },
+	{ L'ら', "RA" }, { L'り', "RI" }, { L'る', "RU" }, { L'れ', "RE" }, { L'ろ', "RO" },
+	{ L'わ', "WA" }, { L'を', "WO" },
+	{ L'ん', "N"  },
+	{ L'が', "GA" }, { L'ぎ', "GI" }, { L'ぐ', "GU" }, { L'げ', "GE" }, { L'ご', "GO" },
+	{ L'ざ', "ZA" }, { L'じ', "JI" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
+	{ L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "DU" }, { L'で', "DE" }, { L'ど', "DO" },
+	{ L'ば', "BA" }, { L'び', "BI" }, { L'ぶ', "BU" }, { L'べ', "BE" }, { L'ぼ', "BO" },
+	{ L'ぱ', "PA" }, { L'ぴ', "PI" }, { L'ぷ', "PU" }, { L'ぺ', "PE" }, { L'ぽ', "PO" },
 	{ 0, 0 },
 };
+
+static const char *
+get_input_for(const wchar_t kana)
+{
+	// TODO: replace this linear search with map
+
+	// kana?
+
+	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++) {
+		if (p->kana == kana)
+			return p->romaji;
+	}
+
+	// TODO: ascii
+
+	return 0;
+}
 
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
@@ -36,16 +54,19 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , cur_tic(0)
 , cur_serifu(cur_kashi.begin())
 , cur_serifu_ms(0)
+, cur_input_index(0)
+, cur_input_part_index(0)
 , small_font(font_cache["data/fonts/small_font.fnt"])
 , tiny_font(font_cache["data/fonts/tiny_font.fnt"])
+, big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
-	player.open(path.str());
-	player.start(.2);
+	// player.open(path.str());
+	// player.start(.2);
 
-	spectrum.update(0);
+	// spectrum.update(0);
 }
 
 in_game_state::~in_game_state()
@@ -54,8 +75,11 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	spectrum.draw();
+	// spectrum.draw();
+
+	draw_time_bars();
 	draw_serifu();
+	draw_input_queue();
 }
 
 void
@@ -63,8 +87,8 @@ in_game_state::update()
 {
 	++cur_tic;
 
-	player.update();
-	spectrum.update(cur_tic);
+	// player.update();
+	// spectrum.update(cur_tic);
 
 	if (cur_serifu != cur_kashi.end()) {
 		cur_serifu_ms += 1000/TICS_PER_SECOND;
@@ -74,6 +98,10 @@ in_game_state::update()
 		if (cur_serifu_ms >= duration) {
 			cur_serifu_ms -= duration;
 			++cur_serifu;
+
+			cur_input_index = cur_input_part_index = 0;
+
+			// TODO: increase completed
 		}
 	}
 }
@@ -84,10 +112,32 @@ in_game_state::on_key_up(int keysym)
 
 void
 in_game_state::on_key_down(int keysym)
-{ }
+{
+	if (keysym >= 'a' && keysym <= 'z')
+		keysym += 'A' - 'a';
+
+	const wchar_t *kana = &cur_serifu->kana[cur_input_index];
+
+	const char *input = get_input_for(*kana);
+
+	if (input) {
+		if (keysym == input[cur_input_part_index]) {
+			if (!input[++cur_input_part_index]) {
+				++cur_input_index;
+				cur_input_part_index = 0;
+			}
+
+			// TODO: increase score
+		} else {
+			// TODO: increase miss
+
+			fprintf(stderr, "miss!\n");
+		}
+	}
+}
 
 void
-in_game_state::draw_serifu() const
+in_game_state::draw_time_bars() const
 {
 	if (cur_serifu == cur_kashi.end())
 		return;
@@ -95,7 +145,7 @@ in_game_state::draw_serifu() const
 	const kashi::serifu& serifu = *cur_serifu;
 
 	const float x0 = 8, x1 = WINDOW_WIDTH - 8, xm = x0 + (x1 - x0)*cur_serifu_ms/serifu.duration;
-	const float y0 = 60, y1 = 65;
+	const float y0 = 120, y1 = 125;
 
 	glDisable(GL_TEXTURE_2D);
 
@@ -115,22 +165,83 @@ in_game_state::draw_serifu() const
 
 	glEnd();
 
+	// TODO: total time bar
+}
+
+void
+in_game_state::draw_serifu() const
+{
+	if (cur_serifu == cur_kashi.end())
+		return;
+
 	glColor3f(1, 1, 0);
 
 	static gl_vertex_array_texuv gv(256);
+	gv.reset();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_TEXTURE_2D);
 
-	gv.reset();
-	gv.add_string(tiny_font, &serifu.kana[0], 10, 32);
+	gv.add_string(tiny_font, &cur_serifu->kana[0], 20, 96);
 	tiny_font->texture->bind();
 	gv.draw(GL_QUADS);
 
 	gv.reset();
-	gv.add_string(small_font, &serifu.kanji[0], 10, 10);
+	gv.add_string(small_font, &cur_serifu->kanji[0], 20, 70);
 	small_font->texture->bind();
 	gv.draw(GL_QUADS);
+}
+
+void
+in_game_state::draw_input_queue() const
+{
+	if (cur_serifu == cur_kashi.end())
+		return;
+
+	const float base_y = 30;
+	float x = 20;
+
+	const font::glyph *big_glyph = big_az_font->find_glyph(L'X');
+	const float big_y = base_y + .5*big_glyph->height - big_glyph->top;
+
+	const font::glyph *small_glyph = small_font->find_glyph(L'X');
+	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
+
+	static gl_vertex_array_texuv gv(256);
+
+	const wchar_t *kana = &cur_serifu->kana[cur_input_index];
+
+	const char *input = get_input_for(*kana);
+
+	if (input) {
+		input += cur_input_part_index;
+
+		gv.reset();
+
+		gv.add_glyph(big_az_font->find_glyph(*input++), x, big_y);
+		big_az_font->texture->bind();
+		gv.draw(GL_QUADS);
+
+		x += big_glyph->advance_x;
+
+		gv.reset();
+
+		for (;;) {
+			if (!*input) {
+				if (!*++kana)
+					break;
+
+				input = get_input_for(*kana);
+			}
+
+			const font::glyph *g = small_font->find_glyph(*input++);
+			gv.add_glyph(g, x, small_y);
+			x += g->advance_x;
+		}
+
+		small_font->texture->bind();
+		gv.draw(GL_QUADS);
+	}
 }
