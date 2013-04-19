@@ -19,7 +19,7 @@ public:
 
 private:
 	void draw_time_bars() const;
-	void draw_serifu() const;
+	void draw_serifu(const kashi::serifu& serifu, int num_consumed, float alpha) const;
 	void draw_input_queue() const;
 
 	const kashi& cur_kashi;
