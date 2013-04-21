@@ -20,6 +20,8 @@ public:
 	void on_key_down(int keysym);
 
 private:
+	void draw_background() const;
+
 	typedef std::vector<menu_item *> item_cont;
 	item_cont item_list;
 
@@ -37,6 +39,7 @@ private:
 	int cur_selection;
 
 	gl_texture *arrow_texture;
+	gl_texture *bg_texture;
 };
 
 #endif // SONG_SELECTION_STATE_H_

@@ -25,6 +25,8 @@ public:
 	const unsigned *get_bits() const
 	{ return &bits[0]; }
 
+	void resize(int new_width, int new_height);
+
 private:
 	int width, height;
 	std::vector<unsigned> bits;

@@ -11,31 +11,31 @@ enum {
 	ARROW_ANIMATION_TICS = 20
 };
 
-struct rgb {
-	rgb(float r, float g, float b)
-	: r(r), g(g), b(b)
+struct rgba {
+	rgba(float r, float g, float b, float a)
+	: r(r), g(g), b(b), a(a)
 	{ }
 
-	rgb operator*(const float s) const
-	{ return rgb(s*r, s*g, s*b); }
+	rgba operator*(const float s) const
+	{ return rgba(s*r, s*g, s*b, s*a); }
 
-	rgb operator+(const rgb& other) const
-	{ return rgb(r + other.r, g + other.g, b + other.b); }
+	rgba operator+(const rgba& other) const
+	{ return rgba(r + other.r, g + other.g, b + other.b, a + other.a); }
 
-	rgb operator-(const rgb& other) const
-	{ return rgb(r - other.r, g - other.g, b - other.b); }
+	rgba operator-(const rgba& other) const
+	{ return rgba(r - other.r, g - other.g, b - other.b, a - other.a); }
 
-	float r, g, b;
+	float r, g, b, a;
 };
 
-static rgb
-operator*(float s, const rgb& color)
+static rgba
+operator*(float s, const rgba& color)
 { return color*s; }
 
 static vector2
 get_item_position(const float t)
 {
-	const float x = 300. + 15.*t*t;
+	const float x = 450. + 15.*t*t;
 	const float y = .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t));
 
 	const float k = .8, w = 150.;
@@ -50,10 +50,10 @@ get_item_scale(const float t)
 	return 1.2 - .07*t*t;
 }
 
-static rgb
+static rgba
 get_item_color(const float t)
 {
-	const rgb from(1, .5, 0), to(1, 1, 1);
+	const rgba from(.3, .6, 1, .5), to(1, 1, 1, 1);
 
 	const float k = 1.;
 	const float f = fabs(t) < k ? .5 + .5*cos((t/k)*M_PI) : 0;
@@ -122,8 +122,8 @@ menu_item::render(float pos) const
 	const vector2 p0 = get_item_position(pos - .5);
 	const vector2 p1 = get_item_position(pos + .5);
 
-	const float y0 = p0.y - 1;
-	const float y1 = p1.y + 1;
+	const float y0 = p0.y;
+	const float y1 = p1.y;
 
 	const float y = .5*(y0 + y1);
 
@@ -133,8 +133,8 @@ menu_item::render(float pos) const
 
 	// glColor3f(.3, .3, .6);
 
-	rgb bg_color = get_item_color(pos);
-	glColor3f(bg_color.r, bg_color.g, bg_color.b);
+	rgba bg_color = get_item_color(pos);
+	glColor4f(bg_color.r, bg_color.g, bg_color.b, bg_color.a);
 
 	glEnable(GL_TEXTURE_2D);
 
@@ -155,7 +155,7 @@ menu_item::render(float pos) const
 
 	// draw text
 
-	glColor3f(1, 1, 1);
+	glColor4f(1, 1, 1, bg_color.a);
 
 	glPushMatrix();
 
@@ -177,6 +177,7 @@ song_menu_state::song_menu_state(const kashi_cont& kashi_list)
 , state_tics(0)
 , cur_selection(0)
 , arrow_texture(texture_cache["data/images/arrow.png"])
+, bg_texture(texture_cache["data/images/menu-background.png"])
 {
 	for (kashi_cont::const_iterator i = kashi_list.begin(); i != kashi_list.end(); i++)
 		item_list.push_back(new menu_item(*i));
@@ -189,8 +190,36 @@ song_menu_state::~song_menu_state()
 }
 
 void
+song_menu_state::draw_background() const
+{
+	const int w = bg_texture->get_image_width();
+	const int h = bg_texture->get_image_height();
+
+	const float u = static_cast<float>(bg_texture->get_image_width())/bg_texture->get_texture_width();
+	const float v = static_cast<float>(bg_texture->get_image_height())/bg_texture->get_texture_height();
+
+	gl_vertex_array_texuv gv(4);
+	gv.add_vertex(0, 0, 0, v);
+	gv.add_vertex(w, 0, u, v);
+	gv.add_vertex(w, h, u, 0);
+	gv.add_vertex(0, h, 0, 0);
+
+	glColor4f(1, 1, 1, 1);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_TEXTURE_2D);
+	bg_texture->bind();
+
+	gv.draw(GL_QUADS);
+}
+
+void
 song_menu_state::redraw() const
 {
+	draw_background();
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -214,10 +243,10 @@ song_menu_state::redraw() const
 
 		const float t = 1. - (1. - f)*(1. - f);
 
-		const float w = arrow_texture->get_width();
-		const float h = arrow_texture->get_height();
+		const float w = arrow_texture->get_texture_width();
+		const float h = arrow_texture->get_texture_height();
 
-		const float x = 120 + t*20 - .5*w;
+		const float x = 270 + t*20 - .5*w;
 		const float y = .5*WINDOW_HEIGHT;
 
 		gl_vertex_array_texuv gv(4);

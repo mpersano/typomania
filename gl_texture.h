@@ -12,16 +12,23 @@ public:
 
 	bool load(const std::string& path);
 
-	int get_width() const
-	{ return width; }
+	int get_image_width() const
+	{ return image_width; }
 
-	int get_height() const
-	{ return height; }
+	int get_image_height() const
+	{ return image_height; }
+
+	int get_texture_width() const
+	{ return texture_width; }
+
+	int get_texture_height() const
+	{ return texture_height; }
 
 	void bind();
 
 private:
-	int width, height;
+	int image_width, image_height;
+	int texture_width, texture_height;
 
 	GLuint texture_id;
 };

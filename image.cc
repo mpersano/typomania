@@ -53,3 +53,19 @@ image::load(const std::string& path)
 
 	return true;
 }
+
+void
+image::resize(int new_width, int new_height)
+{
+	std::vector<unsigned> new_bits(new_width*new_height, 0);
+
+	for (int i = 0; i < std::min(height, new_height); i++) {
+		unsigned *dest = &new_bits[i*new_width];
+		unsigned *src = &bits[i*width];
+		::memcpy(dest, src, std::min(width, new_width)*sizeof(unsigned));
+	}
+
+	width = new_width;
+	height = new_height;
+	bits = new_bits;
+}
