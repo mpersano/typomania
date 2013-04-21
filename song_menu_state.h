@@ -4,8 +4,8 @@
 #include "game.h"
 
 class kashi;
-
-struct menu_item;
+class menu_item;
+class gl_texture;
 
 class song_menu_state : public state {
 public:
@@ -29,10 +29,14 @@ private:
 		STATE_MOVING_DOWN,
 	};
 
+	void set_cur_state(state s);
+
 	state cur_state;
 	int state_tics;
 
 	int cur_selection;
+
+	gl_texture *arrow_texture;
 };
 
 #endif // SONG_SELECTION_STATE_H_

@@ -7,19 +7,58 @@
 #include "song_menu_state.h"
 
 enum {
-	MOVE_TICS = 20
+	MOVE_TICS = 20,
+	ARROW_ANIMATION_TICS = 20
 };
+
+struct rgb {
+	rgb(float r, float g, float b)
+	: r(r), g(g), b(b)
+	{ }
+
+	rgb operator*(const float s) const
+	{ return rgb(s*r, s*g, s*b); }
+
+	rgb operator+(const rgb& other) const
+	{ return rgb(r + other.r, g + other.g, b + other.b); }
+
+	rgb operator-(const rgb& other) const
+	{ return rgb(r - other.r, g - other.g, b - other.b); }
+
+	float r, g, b;
+};
+
+static rgb
+operator*(float s, const rgb& color)
+{ return color*s; }
 
 static vector2
 get_item_position(const float t)
 {
-	return vector2(300. + 15.*t*t, .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t)));
+	const float x = 300. + 15.*t*t;
+	const float y = .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t));
+
+	const float k = .8, w = 150.;
+	const float x_offset = fabs(t) < k ? -w*(.5 + .5*cos((t / k)*M_PI)) : 0;
+
+	return vector2(x + x_offset, y);
 }
 
 static float
 get_item_scale(const float t)
 {
 	return 1.2 - .07*t*t;
+}
+
+static rgb
+get_item_color(const float t)
+{
+	const rgb from(1, .5, 0), to(1, 1, 1);
+
+	const float k = 1.;
+	const float f = fabs(t) < k ? .5 + .5*cos((t/k)*M_PI) : 0;
+
+	return from + f*(to - from);
 }
 
 struct menu_item {
@@ -92,7 +131,10 @@ menu_item::render(float pos) const
 
 	// draw border
 
-	glColor3f(.3, .3, .6);
+	// glColor3f(.3, .3, .6);
+
+	rgb bg_color = get_item_color(pos);
+	glColor3f(bg_color.r, bg_color.g, bg_color.b);
 
 	glEnable(GL_TEXTURE_2D);
 
@@ -132,7 +174,9 @@ menu_item::render(float pos) const
 
 song_menu_state::song_menu_state(const kashi_cont& kashi_list)
 : cur_state(STATE_IDLE)
+, state_tics(0)
 , cur_selection(0)
+, arrow_texture(texture_cache["data/images/arrow.png"])
 {
 	for (kashi_cont::const_iterator i = kashi_list.begin(); i != kashi_list.end(); i++)
 		item_list.push_back(new menu_item(*i));
@@ -164,6 +208,34 @@ song_menu_state::redraw() const
 		(*i)->render(pos);
 		++pos;
 	}
+
+	if (cur_state == STATE_IDLE) {
+		const float f = static_cast<float>(state_tics % ARROW_ANIMATION_TICS)/ARROW_ANIMATION_TICS;
+
+		const float t = 1. - (1. - f)*(1. - f);
+
+		const float w = arrow_texture->get_width();
+		const float h = arrow_texture->get_height();
+
+		const float x = 120 + t*20 - .5*w;
+		const float y = .5*WINDOW_HEIGHT;
+
+		gl_vertex_array_texuv gv(4);
+		gv.add_vertex(x, y - .5*h, 0, 0);
+		gv.add_vertex(x + w, y - .5*h, 1, 0);
+		gv.add_vertex(x + w, y + .5*h, 1, 1);
+		gv.add_vertex(x, y + .5*h, 0, 1);
+
+		glColor4f(1, 1, 1, t);
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_TEXTURE_2D);
+		arrow_texture->bind();
+
+		gv.draw(GL_QUADS);
+	}
 }
 
 void
@@ -175,14 +247,14 @@ song_menu_state::update()
 		case STATE_MOVING_UP:
 			if (state_tics == MOVE_TICS) {
 				--cur_selection;
-				cur_state = STATE_IDLE;
+				set_cur_state(STATE_IDLE);
 			}
 			break;
 
 		case STATE_MOVING_DOWN:
 			if (state_tics == MOVE_TICS) {
 				++cur_selection;
-				cur_state = STATE_IDLE;
+				set_cur_state(STATE_IDLE);
 			}
 			break;
 
@@ -201,17 +273,13 @@ song_menu_state::on_key_down(int keysym)
 {
 	switch (keysym) {
 		case SDLK_UP:
-			if (cur_state == STATE_IDLE && cur_selection > 0) {
-				cur_state = STATE_MOVING_UP;
-				state_tics = 0;
-			}
+			if (cur_state == STATE_IDLE && cur_selection > 0)
+				set_cur_state(STATE_MOVING_UP);
 			break;
 
 		case SDLK_DOWN:
-			if (cur_state == STATE_IDLE && cur_selection < static_cast<int>(item_list.size()) - 1) {
-				cur_state = STATE_MOVING_DOWN;
-				state_tics = 0;
-			}
+			if (cur_state == STATE_IDLE && cur_selection < static_cast<int>(item_list.size()) - 1)
+				set_cur_state(STATE_MOVING_DOWN);
 			break;
 
 		case SDLK_RETURN:
@@ -222,4 +290,11 @@ song_menu_state::on_key_down(int keysym)
 		default:
 			break;
 	}
+}
+
+void
+song_menu_state::set_cur_state(state s)
+{
+	cur_state = s;
+	state_tics = 0;
 }
