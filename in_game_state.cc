@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include <algorithm>
+
 #include <SDL.h>
 #include <GL/gl.h>
 
@@ -11,185 +13,305 @@
 
 static const char *STREAM_DIR = "data/streams";
 
-static const struct kana_to_romaji {
-	const wchar_t kana;
-	const char *romaji;
-} kana_to_romaji_table[] = {
-	{ L'あ', "A"  }, { L'い', "I"  }, { L'う', "U"  }, { L'え', "E"  }, { L'お', "O"  },
-	{ L'か', "KA" }, { L'き', "KI" }, { L'く', "KU" }, { L'け', "KE" }, { L'こ', "KO" },
-	{ L'さ', "SA" }, { L'し', "SI|SHI" }, { L'す', "SU" }, { L'せ', "SE" }, { L'そ', "SO" },
-	{ L'た', "TA" }, { L'ち', "TI|CHI" }, { L'つ', "TU|TSU" }, { L'て', "TE" }, { L'と', "TO" },
-	{ L'な', "NA" }, { L'に', "NI" }, { L'ぬ', "NU" }, { L'ね', "NE" }, { L'の', "NO" },
-	{ L'は', "HA" }, { L'ひ', "HI" }, { L'ふ', "HU|FU" }, { L'へ', "HE" }, { L'ほ', "HO" },
-	{ L'ま', "MA" }, { L'み', "MI" }, { L'む', "MU" }, { L'め', "ME" }, { L'も', "MO" },
-	{ L'や', "YA" }, { L'ゆ', "YU" }, { L'よ', "YO" },
-	{ L'ら', "RA" }, { L'り', "RI" }, { L'る', "RU" }, { L'れ', "RE" }, { L'ろ', "RO" },
-	{ L'わ', "WA" }, { L'を', "WO" },
-	{ L'ん', "N"  }, { L'っ', "T"  },
-	{ L'が', "GA" }, { L'ぎ', "GI" }, { L'ぐ', "GU" }, { L'げ', "GE" }, { L'ご', "GO" },
-	{ L'ざ', "ZA" }, { L'じ', "ZI|JI" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
-	{ L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "DU|ZU" }, { L'で', "DE" }, { L'ど', "DO" },
-	{ L'ば', "BA" }, { L'び', "BI" }, { L'ぶ', "BU" }, { L'べ', "BE" }, { L'ぼ', "BO" },
-	{ L'ぱ', "PA" }, { L'ぴ', "PI" }, { L'ぷ', "PU" }, { L'ぺ', "PE" }, { L'ぽ', "PO" },
-	{ 0, 0 },
+struct pattern_node {
+	pattern_node() : is_optional(false), next(0) { }
+	virtual ~pattern_node() { }
+
+	virtual bool match(int keysym) const = 0;
+	virtual int get_char() const = 0;
+
+	bool is_optional;
+	pattern_node *next;
 };
 
-struct trie {
-	trie();
-	~trie();
+struct single_char_node : pattern_node {
+	single_char_node(int ch) : ch(ch) { }
 
-	static trie *initialize_from(const char *str);
+	bool match(int keysym) const
+	{ return ch == keysym; }
 
-	bool is_terminator;
-	trie *next['Z' - 'A' + 1];
+	int get_char() const
+	{ return ch; }
+
+	int ch;
 };
 
-trie::trie()
-: is_terminator(false)
-{
-	memset(next, 0, sizeof next);
-}
+struct multi_char_node : pattern_node {
+	bool match(int keysym) const
+	{ return std::find(char_list.begin(), char_list.end(), keysym) != char_list.end(); }
 
-trie::~trie()
+	int get_char() const
+	{ return char_list[0]; }
+
+	std::vector<int> char_list;
+};
+
+static pattern_node *
+parse_pattern(const char *pattern_str)
 {
-	for (size_t i = 0; i < 'Z' - 'A' + 1; i++) {
-		if (next[i])
-			delete next[i];
+	pattern_node *head = 0, **node_ptr = &head;
+
+	while (*pattern_str) {
+		pattern_node *node;
+
+		int ch = *pattern_str++;
+
+		if (ch == '[') {
+			node = new multi_char_node;
+
+			while ((ch = *pattern_str++) != ']' && ch != '\0')
+				dynamic_cast<multi_char_node *>(node)->char_list.push_back(ch);
+		} else {
+			node = new single_char_node(ch);
+		}
+
+		if (*pattern_str == '?') {
+			node->is_optional = true;
+			++pattern_str;
+		}
+
+		*node_ptr = node;
+		node_ptr = &node->next;
 	}
+
+	return head;
 }
 
-trie *
-trie::initialize_from(const char *str)
-{
-	trie *root = 0, **trie_ptr = &root;
-
-	for (;;) {
-		const char ch = *str++;
-		assert(ch == '\0' || ch == '|' || (ch >= 'A' || ch <= 'Z'));
-
-		trie *q = *trie_ptr;
-		if (!q)
-			q = *trie_ptr = new trie;
-
-		q->is_terminator = (ch == '\0' || ch == '|');
-		trie_ptr = !q->is_terminator ? &q->next[ch - 'A'] : &root;
-
-		if (ch == '\0')
-			break;
-	}
-
-	return root;
-}
-
-class kana_consumer {
+class kana_to_pattern {
 public:
-	kana_consumer();
-	~kana_consumer();
+	static pattern_node *find(const wchar_t ch);
 
-	void set_cur_serifu(const wchar_t *serifu);
+private:
+	kana_to_pattern();
+	~kana_to_pattern();
+
+	typedef std::map<wchar_t, pattern_node *> map;
+	map kana_to_pattern_map;
+};
+
+kana_to_pattern::kana_to_pattern()
+{
+	static const struct kana_to_romaji {
+		const wchar_t kana;
+		const char *romaji;
+	} kana_to_romaji_table[] = {
+		{ L'あ', "A"  }, { L'い', "I"  }, { L'う', "U"  }, { L'え', "E"  }, { L'お', "O"  },
+		{ L'か', "KA" }, { L'き', "KI" }, { L'く', "KU" }, { L'け', "KE" }, { L'こ', "KO" },
+		{ L'さ', "SA" }, { L'し', "SH?I" }, { L'す', "SU" }, { L'せ', "SE" }, { L'そ', "SO" },
+		{ L'た', "TA" }, { L'ち', "[TC]H?I" }, { L'つ', "TS?U" }, { L'て', "TE" }, { L'と', "TO" },
+		{ L'な', "NA" }, { L'に', "NI" }, { L'ぬ', "NU" }, { L'ね', "NE" }, { L'の', "NO" },
+		{ L'は', "HA" }, { L'ひ', "HI" }, { L'ふ', "[HF]U" }, { L'へ', "HE" }, { L'ほ', "HO" },
+		{ L'ま', "MA" }, { L'み', "MI" }, { L'む', "MU" }, { L'め', "ME" }, { L'も', "MO" },
+		{ L'や', "YA" }, { L'ゆ', "YU" }, { L'よ', "YO" },
+		{ L'ら', "RA" }, { L'り', "RI" }, { L'る', "RU" }, { L'れ', "RE" }, { L'ろ', "RO" },
+		{ L'わ', "WA" }, { L'を', "WO" },
+		{ L'ん', "N"  }, { L'っ', "T"  },
+		{ L'が', "GA" }, { L'ぎ', "GI" }, { L'ぐ', "GU" }, { L'げ', "GE" }, { L'ご', "GO" },
+		{ L'ざ', "ZA" }, { L'じ', "[ZJ]I" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
+		{ L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "[DZ]U" }, { L'で', "DE" }, { L'ど', "DO" },
+		{ L'ば', "BA" }, { L'び', "BI" }, { L'ぶ', "BU" }, { L'べ', "BE" }, { L'ぼ', "BO" },
+		{ L'ぱ', "PA" }, { L'ぴ', "PI" }, { L'ぷ', "PU" }, { L'ぺ', "PE" }, { L'ぽ', "PO" },
+		{ 0, 0 },
+	};
+
+	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
+		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
+}
+
+kana_to_pattern::~kana_to_pattern()
+{
+	for (map::iterator i = kana_to_pattern_map.begin(); i != kana_to_pattern_map.end(); i++)
+		delete i->second;
+}
+
+pattern_node *
+kana_to_pattern::find(const wchar_t ch)
+{
+	static kana_to_pattern instance;
+
+	map::iterator i = instance.kana_to_pattern_map.find(ch);
+
+	return i == instance.kana_to_pattern_map.end() ? 0 : i->second;
+}
+
+struct romaji_iterator {
+	romaji_iterator(const pattern_node *cur_pattern, const wchar_t *kana)
+	: cur_pattern(cur_pattern), kana(kana)
+	{ skip_optional(); }
+
+	bool operator!() const
+	{
+		return !!cur_pattern;
+	}
+
+	operator bool() const
+	{ return cur_pattern; }
+
+	romaji_iterator& operator++()
+	{
+		if (cur_pattern) {
+			if (!(cur_pattern = cur_pattern->next))
+				cur_pattern = kana_to_pattern::find(*kana++);
+
+			skip_optional();
+		}
+
+		return *this;
+	}
+
+	char operator*() const
+	{ return cur_pattern ? cur_pattern->get_char() : 0; }
+
+	void skip_optional()
+	{
+		while (cur_pattern && cur_pattern->is_optional) {
+			if (!(cur_pattern = cur_pattern->next))
+				cur_pattern = kana_to_pattern::find(*kana++);
+		}
+	}
+
+	const pattern_node *cur_pattern;
+	const wchar_t *kana;
+};
+
+class kana_buffer {
+public:
+	kana_buffer()
+	: kana(0), kana_index(0), cur_pattern(0)
+	{ }
+
+	void set_kana(const wchar_t *p);
+
 	bool on_key_down(int keysym);
 
 	bool finished() const
-	{ return !cur_trie; }
+	{ return !cur_pattern; }
 
 	int get_num_consumed() const
-	{ return cur_serifu_index - 1; }
+	{ return kana_index - 1; }
+
+	romaji_iterator get_romaji_iterator() const
+	{ return romaji_iterator(cur_pattern, &kana[kana_index]); }
+
+	void draw(const font *big_font, const font *small_font) const;
 
 private:
 	void consume_kana();
 
-	const wchar_t *cur_serifu;
-	const trie *cur_trie;
-
-	int cur_serifu_index;
-
-	typedef std::map<wchar_t, trie *> kana_trie_cont;
-	kana_trie_cont kana_trie_map;
+	const wchar_t *kana;
+	int kana_index;
+	const pattern_node *cur_pattern;
 };
 
-kana_consumer::kana_consumer()
-: cur_serifu(0)
-, cur_trie(0)
-, cur_serifu_index(0)
-{
-	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
-		kana_trie_map[p->kana] = trie::initialize_from(p->romaji);
-}
-
-kana_consumer::~kana_consumer()
-{
-	for (kana_trie_cont::iterator i = kana_trie_map.begin(); i != kana_trie_map.end(); i++)
-		delete i->second;
-}
-
 bool
-kana_consumer::on_key_down(int keysym)
+kana_buffer::on_key_down(int keysym)
 {
-	assert(cur_trie);
+	assert(cur_pattern);
 
 	if (keysym >= 'a' && keysym <= 'z')
 		keysym += 'A' - 'a';
 
-	if (keysym < 'A' || keysym > 'Z')
-		return false;
+	if (!cur_pattern->match(keysym)) {
+		if (!cur_pattern->is_optional) {
+			return false;
+		} else {
+			// failed to match but was optional, so try next one
 
-	const trie *next = cur_trie->next[keysym - 'A'];
+			if (cur_pattern->next && cur_pattern->next->match(keysym)) {
+				cur_pattern = cur_pattern->next;
+			} else {
+				return false;
+			}
+		}
+	}
 
-	if (!next)
-		return false;
-
-	if (next->is_terminator)
+	if (!(cur_pattern = cur_pattern->next))
 		consume_kana();
-	else
-		cur_trie = next;
 
 	return true;
 }
 
 void
-kana_consumer::set_cur_serifu(const wchar_t *serifu)
+kana_buffer::set_kana(const wchar_t *p)
 {
-	cur_serifu = serifu;
-	cur_serifu_index = 0;
+	kana = p;
+	kana_index = 0;
 	consume_kana();
 }
 
 void
-kana_consumer::consume_kana()
+kana_buffer::consume_kana()
 {
 retry:
-	const wchar_t ch = cur_serifu[cur_serifu_index++];
+	const wchar_t ch = kana[kana_index++];
 
 	if (ch == L'\0') {
-		cur_trie = 0;
+		cur_pattern = 0;
 	} else {
-		kana_trie_cont::const_iterator i = kana_trie_map.find(ch);
-
-		if (i == kana_trie_map.end())
+		if (!(cur_pattern = kana_to_pattern::find(ch)))
 			goto retry;
-
-		cur_trie = i->second;
 	}
 }
 
-static kana_consumer input_consumer;
-
-static const char *
-get_input_for(const wchar_t kana)
+void
+kana_buffer::draw(const font *big_font, const font *small_font) const
 {
-	// TODO: replace this linear search with map
+	if (!cur_pattern)
+		return;
 
-	// kana?
+	const float base_y = 30;
+	const float base_x = 20;
 
-	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++) {
-		if (p->kana == kana)
-			return p->romaji;
+	const font::glyph *big_glyph = big_font->find_glyph(L'X');
+	const float big_y = base_y + .5*big_glyph->height - big_glyph->top;
+
+	const font::glyph *small_glyph = small_font->find_glyph(L'X');
+	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
+
+	static gl_vertex_array_texuv gv(256);
+
+	bool is_first = true;
+
+	const pattern_node *p = cur_pattern;
+	const wchar_t *q = &kana[kana_index];
+
+	float x = base_x;
+
+	for (;;) {
+		const int ch = p->get_char();
+
+		if (is_first) {
+			gv.reset();
+			gv.add_glyph(big_font->find_glyph(ch), x, big_y);
+			big_font->texture->bind();
+			gv.draw(GL_QUADS);
+
+			x += big_glyph->advance_x;
+
+			is_first = false;
+		} else {
+			const font::glyph *g = small_font->find_glyph(ch);
+
+			gv.reset();
+			gv.add_glyph(small_font->find_glyph(ch), x, small_y);
+			small_font->texture->bind();
+			gv.draw(GL_QUADS);
+
+			x += g->advance_x;
+		}
+
+		if (!(p = p->next)) {
+			const wchar_t kana = *q++;
+
+			if (!kana)
+				break;
+
+			p = kana_to_pattern::find(kana);
+		}
 	}
-
-	// TODO: ascii
-
-	return 0;
 }
+
+static kana_buffer input_buffer;
 
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
@@ -209,7 +331,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	spectrum.update(0);
 
-	input_consumer.set_cur_serifu(&cur_serifu->kana[0]);
+	input_buffer.set_kana(&cur_serifu->kana[0]);
 }
 
 in_game_state::~in_game_state()
@@ -222,16 +344,16 @@ in_game_state::redraw() const
 
 	draw_time_bars();
 
-	if (input_consumer.finished()) {
+	if (input_buffer.finished()) {
 		kashi::const_iterator next_serifu = cur_serifu + 1;
 
 		if (next_serifu != cur_kashi.end())
 			draw_serifu(*next_serifu, 0, .5);
 	} else if (cur_serifu != cur_kashi.end()) {
-		draw_serifu(*cur_serifu, input_consumer.get_num_consumed(), 1);
+		draw_serifu(*cur_serifu, input_buffer.get_num_consumed(), 1);
 	}
 
-	draw_input_queue();
+	draw_input_buffer();
 }
 
 void
@@ -251,7 +373,7 @@ in_game_state::update()
 			cur_serifu_ms -= duration;
 			++cur_serifu;
 
-			input_consumer.set_cur_serifu(&cur_serifu->kana[0]);
+			input_buffer.set_kana(&cur_serifu->kana[0]);
 		}
 	}
 }
@@ -268,8 +390,8 @@ in_game_state::on_key_down(int keysym)
 		return;
 	}
 
-	if (!input_consumer.finished()) {
-		if (!input_consumer.on_key_down(keysym))
+	if (!input_buffer.finished()) {
+		if (!input_buffer.on_key_down(keysym))
 			fprintf(stderr, "miss!\n");
 	}
 }
@@ -345,11 +467,8 @@ in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float 
 }
 
 void
-in_game_state::draw_input_queue() const
+in_game_state::draw_input_buffer() const
 {
-	if (cur_serifu == cur_kashi.end())
-		return;
-
 	const float base_y = 30;
 	const float base_x = 20;
 
@@ -361,41 +480,32 @@ in_game_state::draw_input_queue() const
 
 	static gl_vertex_array_texuv gv(256);
 
-	const int cur_input_index = input_consumer.get_num_consumed();
+	bool is_first = true;
 
-	const wchar_t *kana = &cur_serifu->kana[cur_input_index];
-	const char *input = get_input_for(*kana);
+	float x = base_x;
 
-	if (input) {
-		float x = base_x;
+	for (romaji_iterator iter = input_buffer.get_romaji_iterator(); iter; ++iter) {
+		const int ch = *iter;
 
-		gv.reset();
+		if (is_first) {
+			gv.reset();
+			gv.add_glyph(big_az_font->find_glyph(ch), x, big_y);
+			big_az_font->texture->bind();
+			gv.draw(GL_QUADS);
 
-		gv.add_glyph(big_az_font->find_glyph(*input++), x, big_y);
-		big_az_font->texture->bind();
-		gv.draw(GL_QUADS);
+			x += big_glyph->advance_x;
 
-		x += big_glyph->advance_x;
+			is_first = false;
 
-		gv.reset();
+			gv.reset();
+		} else {
+			const font::glyph *g = small_font->find_glyph(ch);
+			gv.add_glyph(small_font->find_glyph(ch), x, small_y);
 
-		for (;;) {
-			if (*input == '\0' || *input == '|') {
-				if (!*++kana)
-					break;
-
-				input = get_input_for(*kana);
-			}
-
-			if (!input)
-				break;
-
-			const font::glyph *g = small_font->find_glyph(*input++);
-			gv.add_glyph(g, x, small_y);
 			x += g->advance_x;
 		}
-
-		small_font->texture->bind();
-		gv.draw(GL_QUADS);
 	}
+
+	small_font->texture->bind();
+	gv.draw(GL_QUADS);
 }
