@@ -15,7 +15,7 @@ static const char *STREAM_DIR = "data/streams";
 
 struct pattern_node {
 	pattern_node() : is_optional(false), next(0) { }
-	virtual ~pattern_node() { }
+	virtual ~pattern_node() { if (next) delete next; }
 
 	virtual bool match(int keysym) const = 0;
 	virtual int get_char() const = 0;
@@ -135,9 +135,12 @@ kana_to_pattern::find(const wchar_t ch)
 }
 
 struct romaji_iterator {
-	romaji_iterator(const pattern_node *cur_pattern, const wchar_t *kana)
-	: cur_pattern(cur_pattern), kana(kana)
-	{ skip_optional(); }
+	romaji_iterator(const pattern_node *pattern, const wchar_t *kana)
+	: cur_pattern(pattern), kana(kana)
+	{
+		while (cur_pattern && cur_pattern->is_optional)
+			next_pattern();
+	}
 
 	bool operator!() const
 	{
@@ -150,10 +153,9 @@ struct romaji_iterator {
 	romaji_iterator& operator++()
 	{
 		if (cur_pattern) {
-			if (!(cur_pattern = cur_pattern->next))
-				cur_pattern = kana_to_pattern::find(*kana++);
-
-			skip_optional();
+			next_pattern();
+			while (cur_pattern && cur_pattern->is_optional)
+				next_pattern();
 		}
 
 		return *this;
@@ -162,12 +164,10 @@ struct romaji_iterator {
 	char operator*() const
 	{ return cur_pattern ? cur_pattern->get_char() : 0; }
 
-	void skip_optional()
+	void next_pattern()
 	{
-		while (cur_pattern && cur_pattern->is_optional) {
-			if (!(cur_pattern = cur_pattern->next))
-				cur_pattern = kana_to_pattern::find(*kana++);
-		}
+		if (!(cur_pattern = cur_pattern->next))
+			cur_pattern = kana_to_pattern::find(*kana++);
 	}
 
 	const pattern_node *cur_pattern;
