@@ -185,8 +185,6 @@ public:
 	romaji_iterator get_romaji_iterator() const
 	{ return romaji_iterator(cur_pattern, &kana[kana_index]); }
 
-	void draw(const font *big_font, const font *small_font) const;
-
 private:
 	void consume_kana();
 
@@ -236,64 +234,6 @@ kana_buffer::consume_kana()
 {
 	const wchar_t ch = kana[kana_index++];
 	cur_pattern = ch == L'\0' ? 0 : kana_to_pattern::find(ch);
-}
-
-void
-kana_buffer::draw(const font *big_font, const font *small_font) const
-{
-	if (!cur_pattern)
-		return;
-
-	const float base_y = 30;
-	const float base_x = 20;
-
-	const font::glyph *big_glyph = big_font->find_glyph(L'X');
-	const float big_y = base_y + .5*big_glyph->height - big_glyph->top;
-
-	const font::glyph *small_glyph = small_font->find_glyph(L'X');
-	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
-
-	static gl_vertex_array_texuv gv(256);
-
-	bool is_first = true;
-
-	const pattern_node *p = cur_pattern;
-	const wchar_t *q = &kana[kana_index];
-
-	float x = base_x;
-
-	for (;;) {
-		const int ch = p->get_char();
-
-		if (is_first) {
-			gv.reset();
-			gv.add_glyph(big_font->find_glyph(ch), x, big_y);
-			big_font->texture->bind();
-			gv.draw(GL_QUADS);
-
-			x += big_glyph->advance_x;
-
-			is_first = false;
-		} else {
-			const font::glyph *g = small_font->find_glyph(ch);
-
-			gv.reset();
-			gv.add_glyph(small_font->find_glyph(ch), x, small_y);
-			small_font->texture->bind();
-			gv.draw(GL_QUADS);
-
-			x += g->advance_x;
-		}
-
-		if (!(p = p->next)) {
-			const wchar_t kana = *q++;
-
-			if (!kana)
-				break;
-
-			p = kana_to_pattern::find(kana);
-		}
-	}
 }
 
 static kana_buffer input_buffer;
