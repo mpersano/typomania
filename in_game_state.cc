@@ -449,7 +449,7 @@ in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float 
 	float next_x = gv.add_stringn(tiny_font, &serifu.kana[0], num_consumed, base_x, 96);
 	gv.draw(GL_QUADS);
 
-	if (serifu.kana[cur_input_index]) {
+	if (serifu.kana[num_consumed]) {
 		glColor4f(1, 1, 1, alpha);
 		gv.reset();
 		gv.add_string(tiny_font, &serifu.kana[num_consumed], next_x, 96);

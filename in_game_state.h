@@ -32,8 +32,6 @@ private:
 	kashi::const_iterator cur_serifu;
 	int cur_serifu_ms;
 
-	int cur_input_index, cur_input_part_index;
-
 	font *small_font;
 	font *tiny_font;
 	font *big_az_font;
