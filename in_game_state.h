@@ -19,8 +19,15 @@ public:
 
 private:
 	void draw_time_bars() const;
+	void draw_time_bar(float y, const wchar_t *label, int partial, int total) const;
+
 	void draw_serifu(const kashi::serifu& serifu, int num_consumed, float alpha) const;
+
 	void draw_input_buffer() const;
+
+	void draw_hud_counters() const;
+	float draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const;
+	float draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const;
 
 	const kashi& cur_kashi;
 
@@ -30,7 +37,15 @@ private:
 	int cur_tic;
 
 	kashi::const_iterator cur_serifu;
-	int cur_serifu_ms;
+	int cur_serifu_ms, total_ms;
+
+	int song_duration; // in seconds
+
+	int score, display_score;
+	int combo;
+	int max_combo;
+	int miss;
+	int total_strokes;
 
 	font *small_font;
 	font *tiny_font;

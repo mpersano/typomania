@@ -144,38 +144,6 @@ NAME::add_stringn(const font *fi, const wchar_t *str, int n,
 }
 #endif
 
-#ifdef WITH_TEXUV
-int
-NAME::add_integer(const font *fi, int n,
-#ifdef WITH_COLOR
-		int r, int g, int b, int a,
-#endif
-		float x, float y)
-{
-	int width = 0;
-
-	if (n > 0) {
-		const font::glyph *gi = fi->find_glyph((n%10) + '0');
-
-		width = add_integer(fi, n/10,
-#ifdef WITH_COLOR
-		  r, g, b, a, 
-#endif 
-		  x, y);
-
-		add_glyph(gi,
-#ifdef WITH_COLOR
-		  r, g, b, a, 
-#endif 
-		  x + width, y);
-
-		width += gi->advance_x;
-	}
-
-	return width;
-}
-#endif
-
 #undef WITH_TEXUV
 #undef WITH_COLOR
 #undef NAME

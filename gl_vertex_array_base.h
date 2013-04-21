@@ -55,14 +55,6 @@ public:
 	  float x, float y);
 #endif
 
-#ifdef WITH_TEXUV
-	int add_integer(const font *fi, int n,
-#ifdef WITH_COLOR
-	  int r, int g, int b, int a,
-#endif
-	  float x, float y);
-#endif
-
 	int get_num_vertices() const
 	{ return num_vertices; }
 

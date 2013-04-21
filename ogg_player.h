@@ -23,6 +23,9 @@ public:
 
 	void update();
 
+	int get_track_duration() const
+	{ return num_samples/rate; }
+
 private:
 	int get_num_buffer_samples() const;
 
@@ -54,6 +57,7 @@ private:
 
 	ALenum format;
 	int rate;
+	int num_samples;
 
 	bool playing;
 };

@@ -41,6 +41,8 @@ ogg_player::open(const std::string& path)
 	}
 
 	rate = info->rate;
+
+	num_samples = ov_pcm_total(&ogg_stream, -1);
 }
 
 void

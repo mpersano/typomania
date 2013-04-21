@@ -244,6 +244,13 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , cur_tic(0)
 , cur_serifu(cur_kashi.begin())
 , cur_serifu_ms(0)
+, total_ms(0)
+, score(0)
+, display_score(0)
+, combo(0)
+, max_combo(0)
+, miss(0)
+, total_strokes(0)
 , small_font(font_cache["data/fonts/small_font.fnt"])
 , tiny_font(font_cache["data/fonts/tiny_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
@@ -252,6 +259,9 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
 	player.open(path.str());
+
+	song_duration = player.get_track_duration();
+
 	player.start(.1);
 
 	spectrum.update(0);
@@ -265,7 +275,7 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	spectrum.draw();
+	// spectrum.draw();
 
 	draw_time_bars();
 
@@ -279,6 +289,8 @@ in_game_state::redraw() const
 	}
 
 	draw_input_buffer();
+
+	draw_hud_counters();
 }
 
 void
@@ -288,6 +300,8 @@ in_game_state::update()
 
 	player.update();
 	spectrum.update(cur_tic);
+
+	total_ms += 1000/TICS_PER_SECOND;
 
 	if (cur_serifu != cur_kashi.end()) {
 		cur_serifu_ms += 1000/TICS_PER_SECOND;
@@ -301,6 +315,10 @@ in_game_state::update()
 			input_buffer.set_kana(&cur_serifu->kana[0]);
 		}
 	}
+
+	display_score += (score - display_score)/2;
+	if (abs(display_score - score) == 1)
+		display_score = score;
 }
 
 void
@@ -316,21 +334,75 @@ in_game_state::on_key_down(int keysym)
 	}
 
 	if (!input_buffer.finished()) {
-		if (!input_buffer.on_key_down(keysym))
-			fprintf(stderr, "miss!\n");
+		++total_strokes;
+
+		if (!input_buffer.on_key_down(keysym)) {
+			score -= 311;
+			combo = 0;
+			++miss;
+		} else {
+			score += 173;
+			if (++combo > max_combo)
+				max_combo = combo;
+		}
 	}
 }
 
-void
-in_game_state::draw_time_bars() const
+static float
+draw_integer_r(gl_vertex_array_texuv& gv, const font *f, float x, float y, float w, bool zero_padded, int num_digits, int value)
 {
-	if (cur_serifu == cur_kashi.end())
-		return;
+	gv.add_glyph(f->find_glyph(value%10 + L'0'), x, y);
 
-	const kashi::serifu& serifu = *cur_serifu;
+	if (value/10 || (zero_padded && num_digits > 1))
+		return draw_integer_r(gv, f, x - w, y, w, zero_padded, num_digits - 1, value/10);
+	else
+		return x - w;
+}
 
-	const float x0 = 8, x1 = WINDOW_WIDTH - 8, xm = x0 + (x1 - x0)*cur_serifu_ms/serifu.duration;
-	const float y0 = 120, y1 = 125;
+static void
+draw_integer(const font *f, float base_x, float base_y, bool zero_padded, int num_digits, int value)
+{
+	static gl_vertex_array_texuv gv(256);
+	gv.reset();
+
+	const font::glyph *g = f->find_glyph(L'0');
+	base_y += .5*g->height - g->top;
+
+	const float x = draw_integer_r(gv, f, base_x, base_y, g->advance_x, zero_padded, num_digits, abs(value));
+
+	if (value < 0)
+		gv.add_glyph(f->find_glyph(L'-'), x, base_y);
+
+	f->texture->bind();
+	gv.draw(GL_QUADS);
+}
+
+static void
+draw_string(const font *f, float x, float y, const wchar_t *str)
+{
+	static gl_vertex_array_texuv gv(256);
+	gv.reset();
+
+	const font::glyph *g = f->find_glyph(L'X');
+	gv.add_string(f, str, x, y + .5*g->height - g->top);
+
+	f->texture->bind();
+	gv.draw(GL_QUADS);
+}
+
+void
+in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total) const
+{
+	const float x = 120;
+	const float w = WINDOW_WIDTH - x - 8;
+	const float h = 5;
+
+	const float x0 = x, x1 = x + w, xm = x0 + (x1 - x0)*partial/total;
+	const float y0 = y - .5*h, y1 = y + .5*h;
+
+	glColor4f(1, 1, 1, 1);
+	glEnable(GL_TEXTURE_2D);
+	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
 
 	glDisable(GL_TEXTURE_2D);
 
@@ -350,13 +422,24 @@ in_game_state::draw_time_bars() const
 
 	glEnd();
 
-	// TODO: total time bar
+}
+
+void
+in_game_state::draw_time_bars() const
+{
+	if (cur_serifu == cur_kashi.end())
+		return;
+
+	const kashi::serifu& serifu = *cur_serifu;
+
+	draw_time_bar(170, L"INTERVAL", cur_serifu_ms, serifu.duration);
+	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration*1000);
 }
 
 void
 in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float alpha) const
 {
-	const float base_x = 20;
+	const float base_x = 100;
 
 	static gl_vertex_array_texuv gv(256);
 
@@ -433,4 +516,53 @@ in_game_state::draw_input_buffer() const
 
 	small_font->texture->bind();
 	gv.draw(GL_QUADS);
+}
+
+float 
+in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const
+{
+	draw_string(tiny_font, x, y, label);
+	x += tiny_font->get_string_width(label) + small_font->find_glyph(L'0')->advance_x*num_digits;
+	draw_integer(small_font, x, y, zero_padded, num_digits, value);
+
+	return x;
+}
+
+float 
+in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const
+{
+	draw_string(tiny_font, x, y, label);
+	x += tiny_font->get_string_width(label) + small_font->find_glyph(L'0')->advance_x;
+	draw_string(small_font, x, y, value);
+
+	return x;
+}
+
+void
+in_game_state::draw_hud_counters() const
+{
+	const float base_y = 140;
+
+	glColor4f(1, 1, 1, 1);
+
+	if (combo) {
+		draw_integer(small_font, 40, base_y, false, 0, combo);
+		draw_string(tiny_font, 60, base_y, L"COMBO");
+	}
+
+	float x = 140;
+	x = draw_hud_counter(x, base_y, L"SCORE", false, 7, display_score) + 50;
+	x = draw_hud_counter(x, base_y, L"MAX COMBO", true, 3, max_combo) + 50;
+	x = draw_hud_counter(x, base_y, L"MISS", true, 3, miss) + 50;
+
+	wchar_t buf[30] = {0};
+	if (total_strokes > 0) {
+		if (miss == 0) {
+			wcscpy(buf, L"100%");
+		} else {
+			const float f = 100.*static_cast<float>(total_strokes - miss)/total_strokes;
+			swprintf(buf, sizeof(buf), L"%.1f%%", f);
+		}
+	}
+	draw_hud_counter(x, base_y, L"CORRECT", buf);
 }
