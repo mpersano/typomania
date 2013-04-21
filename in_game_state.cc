@@ -142,14 +142,6 @@ struct romaji_iterator {
 			next_pattern();
 	}
 
-	bool operator!() const
-	{
-		return !!cur_pattern;
-	}
-
-	operator bool() const
-	{ return cur_pattern; }
-
 	romaji_iterator& operator++()
 	{
 		if (cur_pattern) {
@@ -242,15 +234,8 @@ kana_buffer::set_kana(const wchar_t *p)
 void
 kana_buffer::consume_kana()
 {
-retry:
 	const wchar_t ch = kana[kana_index++];
-
-	if (ch == L'\0') {
-		cur_pattern = 0;
-	} else {
-		if (!(cur_pattern = kana_to_pattern::find(ch)))
-			goto retry;
-	}
+	cur_pattern = ch == L'\0' ? 0 : kana_to_pattern::find(ch);
 }
 
 void
@@ -484,7 +469,7 @@ in_game_state::draw_input_buffer() const
 
 	float x = base_x;
 
-	for (romaji_iterator iter = input_buffer.get_romaji_iterator(); iter; ++iter) {
+	for (romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter) {
 		const int ch = *iter;
 
 		if (is_first) {
