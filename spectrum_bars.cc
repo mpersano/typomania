@@ -3,12 +3,15 @@
 
 #include <GL/gl.h>
 
-#include "fft.h"
 #include "common.h"
+#include "fft.h"
+#include "gl_vertex_array.h"
 #include "spectrum_bars.h"
 
-spectrum_bars::spectrum_bars(const ogg_player& player)
+spectrum_bars::spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bands)
 : player(player)
+, base_x(x), base_y(y), width(w), height(h), num_bands(num_bands)
+, bar_texture(texture_cache["data/images/spectrum-bar.png"])
 { }
 
 void
@@ -20,20 +23,9 @@ spectrum_bars::update(int cur_tic)
 void
 spectrum_bars::draw() const
 {
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_CULL_FACE);
-
 	glPushMatrix();
-	glTranslatef(0, .25*WINDOW_HEIGHT, 0);
-	glColor4f(.5, .5, .5, 1);
-	render_wave(sample_window, WINDOW_SIZE, .25*WINDOW_HEIGHT);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslatef(0, .5*WINDOW_HEIGHT, 0);
-	glColor4f(1, 1, 1, 1);
-	render_spectrum_bars(spectrum_window, WINDOW_SIZE/2, WINDOW_HEIGHT);
+	glTranslatef(base_x, base_y, 0);
+	render_spectrum_bars(spectrum_window, WINDOW_SIZE/4, 4.*height);
 	glPopMatrix();
 }
 
@@ -85,55 +77,39 @@ spectrum_bars::update_spectrum_window(int cur_tic)
 }
 
 void
-spectrum_bars::render_wave(const float *samples, int num_samples, float scale) const
-{
-	const float dx = static_cast<float>(WINDOW_WIDTH)/num_samples;
-
-	float x = 0;
-
-	glBegin(GL_LINES);
-
-	for (int i = 0; i < num_samples - 1; i++) {
-		const float s0 = samples[i];
-		const float s1 = samples[i + 1];
-
-		glVertex2f(x, s0*scale);
-		glVertex2f(x + dx, s1*scale);
-
-		x += dx;
-	}
-
-	glEnd();
-}
-
-void
 spectrum_bars::render_spectrum_bars(const float *samples, int num_samples, float scale) const
 {
-	const int NUM_BANDS = 64;
-	const int SAMPLES_PER_BAND = num_samples/NUM_BANDS;
+	const int samples_per_band = num_samples/num_bands;
+	const int dx = width/num_bands;
 
-	float x = 0;
-	const float dx = static_cast<float>(WINDOW_WIDTH)/NUM_BANDS;
+	int x = 0;
 
-	glBegin(GL_QUADS);
+	gl_vertex_array_texuv gv(256);
 
-	for (int i = 0; i < NUM_BANDS; i++) {
+	for (int i = 0; i < num_bands; i++) {
 		float w = 0;
 
-		for (int j = 0; j < SAMPLES_PER_BAND; j++)
-			w += samples[i*SAMPLES_PER_BAND + j];
+		for (int j = 0; j < samples_per_band; j++)
+			w += samples[i*samples_per_band + j];
 
-		w *= scale*log(i + 2);
+		w /= samples_per_band;
 
-		w++;
+		w = sqrt(w)*scale;
 
-		glVertex2f(x, 0);
-		glVertex2f(x, w);
-		glVertex2f(x + dx - 1, w);
-		glVertex2f(x + dx - 1, 0);
+		if (w > height)
+			w = height;
+
+		const float u = w/height;
+
+		gv.add_vertex(x, 0, 0, 0);
+		gv.add_vertex(x, w, 0, u);
+		gv.add_vertex(x + dx - 1, w, 1, u);
+		gv.add_vertex(x + dx - 1, 0, 1, 0);
 
 		x += dx;
 	}
 
-	glEnd();
+	glEnable(GL_TEXTURE_2D);
+	bar_texture->bind();
+	gv.draw(GL_QUADS);
 }

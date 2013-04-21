@@ -240,7 +240,7 @@ static kana_buffer input_buffer;
 
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
-, spectrum(player)
+, spectrum(player, 100, 50, 800, 128, 64)
 , cur_tic(0)
 , cur_serifu(cur_kashi.begin())
 , cur_serifu_ms(0)
@@ -260,7 +260,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	player.open(path.str());
 
-	song_duration = player.get_track_duration();
+	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
 	player.start(.1);
 
@@ -275,7 +275,8 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	// spectrum.draw();
+	glColor4f(1, 1, 1, .1);
+	spectrum.draw();
 
 	draw_time_bars();
 
@@ -337,11 +338,11 @@ in_game_state::on_key_down(int keysym)
 		++total_strokes;
 
 		if (!input_buffer.on_key_down(keysym)) {
-			score -= 311;
+			score -= 601;
 			combo = 0;
 			++miss;
 		} else {
-			score += 173;
+			score += 311;
 			if (++combo > max_combo)
 				max_combo = combo;
 		}
@@ -433,7 +434,7 @@ in_game_state::draw_time_bars() const
 	const kashi::serifu& serifu = *cur_serifu;
 
 	draw_time_bar(170, L"INTERVAL", cur_serifu_ms, serifu.duration);
-	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration*1000);
+	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration);
 }
 
 void

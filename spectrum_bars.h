@@ -3,17 +3,19 @@
 
 #include "ogg_player.h"
 
+class gl_texture;
+
 class spectrum_bars {
 public:
-	spectrum_bars(const ogg_player& player);
+	spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bars);
 
 	void update(int cur_tic);
+
 	void draw() const;
 
 private:
 	void update_spectrum_window(int cur_tic);
 
-	void render_wave(const float *samples, int num_samples, float scale) const;
 	void render_spectrum_bars(const float *samples, int num_samples, float scale) const;
 
 	enum {
@@ -25,6 +27,11 @@ private:
 	float spectrum_window[WINDOW_SIZE/2];
 
 	const ogg_player& player;
+
+	int base_x, base_y, width, height;
+	int num_bands;
+
+	gl_texture *bar_texture;
 };
 
 #endif // SPECTRUM_BARS_H_

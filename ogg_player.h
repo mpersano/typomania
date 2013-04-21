@@ -23,8 +23,8 @@ public:
 
 	void update();
 
-	int get_track_duration() const
-	{ return num_samples/rate; }
+	float get_track_duration() const
+	{ return static_cast<float>(num_samples)/rate; }
 
 private:
 	int get_num_buffer_samples() const;
@@ -39,7 +39,7 @@ private:
 		long load(OggVorbis_File *stream);
 		void queue(ALuint source, ALenum format, int rate);
 
-		enum { BUFFER_SIZE = 8192 };
+		enum { BUFFER_SIZE = 2*8192 };
 		char data[BUFFER_SIZE];
 
 		long size;
