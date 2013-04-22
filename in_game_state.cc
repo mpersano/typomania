@@ -114,6 +114,24 @@ kana_to_pattern::kana_to_pattern()
 		{ 0, 0 },
 	};
 
+	static const struct kana_pair_to_romaji {
+		const wchar_t *kana_pair;
+		const char *romaji;
+	} kana_pair_to_romaji_table[] = {
+		{ L"きゃ", "KYA" }, { L"きゅ", "KYU" }, { L"きょ", "KYO" },
+		{ L"しゃ", "SHA" }, { L"しゅ", "SHU" }, { L"しょ", "SHO" },
+		{ L"ちゃ", "CHA" }, { L"ちゅ", "CHU" }, { L"ちょ", "CHO" },
+		{ L"にゃ", "NYA" }, { L"にゅ", "NYU" }, { L"にょ", "NYO" },
+		{ L"ひゃ", "HYA" }, { L"ひゅ", "HYU" }, { L"ひょ", "HYO" },
+		{ L"みゃ", "MYA" }, { L"みゅ", "MYU" }, { L"みょ", "MYO" },
+		{ L"りゃ", "RYA" }, { L"りゅ", "RYU" }, { L"りょ", "RYO" },
+		{ L"ぎゃ", "GYA" }, { L"ぎゅ", "GYU" }, { L"ぎょ", "GYO" },
+		{ L"じゃ", "JA"  }, { L"じゅ", "JU"  }, { L"じょ", "JO"  },
+		{ L"びゃ", "BYA" }, { L"びゅ", "BYU" }, { L"びょ", "BYO" },
+		{ L"ぴゃ", "PYA" }, { L"ぴゅ", "PYU" }, { L"ぴょ", "PYO" },
+		{ 0, 0 }
+	};
+
 	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
 		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
 }
