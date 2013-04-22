@@ -29,6 +29,8 @@ private:
 	float draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const;
 	float draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const;
 
+	void draw_song_info() const;
+
 	const kashi& cur_kashi;
 
 	ogg_player player;
@@ -47,8 +49,9 @@ private:
 	int miss;
 	int total_strokes;
 
-	font *small_font;
 	font *tiny_font;
+	font *small_font;
+	font *medium_font;
 	font *big_az_font;
 };
 

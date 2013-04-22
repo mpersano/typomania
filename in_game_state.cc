@@ -251,8 +251,9 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , max_combo(0)
 , miss(0)
 , total_strokes(0)
-, small_font(font_cache["data/fonts/small_font.fnt"])
 , tiny_font(font_cache["data/fonts/tiny_font.fnt"])
+, small_font(font_cache["data/fonts/small_font.fnt"])
+, medium_font(font_cache["data/fonts/medium_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
 	std::ostringstream path;
@@ -280,6 +281,11 @@ in_game_state::redraw() const
 
 	draw_time_bars();
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_TEXTURE_2D);
+
 	if (input_buffer.finished()) {
 		kashi::const_iterator next_serifu = cur_serifu + 1;
 
@@ -290,8 +296,8 @@ in_game_state::redraw() const
 	}
 
 	draw_input_buffer();
-
 	draw_hud_counters();
+	draw_song_info();
 }
 
 void
@@ -311,9 +317,9 @@ in_game_state::update()
 
 		if (cur_serifu_ms >= duration) {
 			cur_serifu_ms -= duration;
-			++cur_serifu;
 
-			input_buffer.set_kana(&cur_serifu->kana[0]);
+			if (++cur_serifu != cur_kashi.end())
+				input_buffer.set_kana(&cur_serifu->kana[0]);
 		}
 	}
 
@@ -444,11 +450,6 @@ in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float 
 
 	static gl_vertex_array_texuv gv(256);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_TEXTURE_2D);
-
 	// kana
 
 	tiny_font->texture->bind();
@@ -566,4 +567,12 @@ in_game_state::draw_hud_counters() const
 		}
 	}
 	draw_hud_counter(x, base_y, L"CORRECT", buf);
+}
+
+void
+in_game_state::draw_song_info() const
+{
+	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
+	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);
+	draw_string(tiny_font, 36, 346, &cur_kashi.artist[0]);
 }

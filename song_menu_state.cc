@@ -35,10 +35,10 @@ operator*(float s, const rgba& color)
 static vector2
 get_item_position(const float t)
 {
-	const float x = 450. + 15.*t*t;
+	const float x = 500. + 15.*t*t;
 	const float y = .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t));
 
-	const float k = .8, w = 150.;
+	const float k = .8, w = 100.;
 	const float x_offset = fabs(t) < k ? -w*(.5 + .5*cos((t / k)*M_PI)) : 0;
 
 	return vector2(x + x_offset, y);
@@ -246,7 +246,7 @@ song_menu_state::redraw() const
 		const float w = arrow_texture->get_texture_width();
 		const float h = arrow_texture->get_texture_height();
 
-		const float x = 270 + t*20 - .5*w;
+		const float x = 370 + t*20 - .5*w;
 		const float y = .5*WINDOW_HEIGHT;
 
 		gl_vertex_array_texuv gv(4);
