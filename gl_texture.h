@@ -24,7 +24,7 @@ public:
 	int get_texture_height() const
 	{ return texture_height; }
 
-	void bind();
+	void bind() const;
 
 private:
 	int image_width, image_height;

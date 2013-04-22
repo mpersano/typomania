@@ -380,7 +380,7 @@ draw_integer(const font *f, float base_x, float base_y, bool zero_padded, int nu
 	if (value < 0)
 		gv.add_glyph(f->find_glyph(L'-'), x, base_y);
 
-	f->texture->bind();
+	f->texture.bind();
 	gv.draw(GL_QUADS);
 }
 
@@ -393,7 +393,7 @@ draw_string(const font *f, float x, float y, const wchar_t *str)
 	const font::glyph *g = f->find_glyph(L'X');
 	gv.add_string(f, str, x, y + .5*g->height - g->top);
 
-	f->texture->bind();
+	f->texture.bind();
 	gv.draw(GL_QUADS);
 }
 
@@ -452,7 +452,7 @@ in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float 
 
 	// kana
 
-	tiny_font->texture->bind();
+	tiny_font->texture.bind();
 
 	glColor4f(1, 1, 0, alpha);
 	gv.reset();
@@ -468,7 +468,7 @@ in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float 
 
 	// kanji
 
-	small_font->texture->bind();
+	small_font->texture.bind();
 
 	glColor4f(1, 1, 1, alpha);
 	gv.reset();
@@ -500,7 +500,7 @@ in_game_state::draw_input_buffer() const
 		if (is_first) {
 			gv.reset();
 			gv.add_glyph(big_az_font->find_glyph(ch), x, big_y);
-			big_az_font->texture->bind();
+			big_az_font->texture.bind();
 			gv.draw(GL_QUADS);
 
 			x += big_glyph->advance_x;
@@ -516,7 +516,7 @@ in_game_state::draw_input_buffer() const
 		}
 	}
 
-	small_font->texture->bind();
+	small_font->texture.bind();
 	gv.draw(GL_QUADS);
 }
 

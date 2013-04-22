@@ -55,7 +55,7 @@ gl_texture::load(const std::string& path)
 }
 
 void
-gl_texture::bind()
+gl_texture::bind() const
 {
 	glBindTexture(GL_TEXTURE_2D, texture_id);
 }

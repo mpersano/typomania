@@ -28,7 +28,7 @@ struct font {
 	typedef std::map<int, glyph *> glyph_cont;
 	glyph_cont glyph_map;
 
-	gl_texture *texture;
+	gl_texture texture;
 };
 
 #endif /* FONT_H_ */

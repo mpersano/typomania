@@ -8,7 +8,6 @@
 #include "panic.h"
 #include "vector2.h"
 #include "gl_vertex_array.h"
-#include "common.h"
 #include "font.h"
 
 font::~font()
@@ -69,7 +68,10 @@ font::load(const std::string& path)
 		return false;
 	}
 
-	texture = texture_cache[texture_path];
+	if (!texture.load(texture_path)) {
+		fclose(fp);
+		return false;
+	}
 
 	while (fgets(line, sizeof(line), fp)) {
 		int code;

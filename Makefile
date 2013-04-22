@@ -25,11 +25,23 @@ CXXFILES =  \
 
 TARGET = typomania
 
+all: depend $(TARGET)
+
 .cc.o:
 	$(CXX) $(CXXFLAGS) -c $<
 
 $(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
 
+depend: .depend
+
+.depend: $(CXXFILES)
+	rm -f .depend
+	$(CXX) $(CXXFLAGS) -MM $^ > .depend;
+
 clean:
-	rm -f *o $(TARGET)
+	rm -f *o $(TARGET) .depend
+
+include .depend
+
+.PHONY: all clean depend

@@ -162,10 +162,10 @@ menu_item::render(float pos) const
 	glTranslatef(p.x, y, 0);
 	glScalef(s, s, 1);
 
-	tiny_font->texture->bind();
+	tiny_font->texture.bind();
 	gv_artist.draw(GL_QUADS);
 
-	small_font->texture->bind();
+	small_font->texture.bind();
 	gv_name.draw(GL_QUADS);
 	gv_level.draw(GL_QUADS);
 
