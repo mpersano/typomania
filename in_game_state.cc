@@ -563,7 +563,7 @@ in_game_state::draw_hud_counters() const
 			wcscpy(buf, L"100%");
 		} else {
 			const float f = 100.*static_cast<float>(total_strokes - miss)/total_strokes;
-			swprintf(buf, sizeof(buf), L"%.1f%%", f);
+			swprintf(buf, sizeof buf/sizeof *buf, L"%.1f%%", f);
 		}
 	}
 	draw_hud_counter(x, base_y, L"CORRECT", buf);
