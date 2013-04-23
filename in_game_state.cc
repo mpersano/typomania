@@ -79,14 +79,24 @@ parse_pattern(const char *pattern_str)
 
 class kana_to_pattern {
 public:
-	static pattern_node *find(const wchar_t ch);
+	static pattern_node *find_pair(const wchar_t first, const wchar_t second);
+	static pattern_node *find_single(const wchar_t kana);
 
 private:
+	static kana_to_pattern& get_instance()
+	{
+		static kana_to_pattern instance;
+		return instance;
+	}
+
 	kana_to_pattern();
 	~kana_to_pattern();
 
-	typedef std::map<wchar_t, pattern_node *> map;
-	map kana_to_pattern_map;
+	typedef std::map<wchar_t, pattern_node *> kana_map;
+	kana_map kana_to_pattern_map;
+
+	typedef std::map<std::pair<wchar_t, wchar_t>, pattern_node *> kana_pair_map;
+	kana_pair_map kana_pair_to_pattern_map;
 };
 
 kana_to_pattern::kana_to_pattern()
@@ -105,7 +115,7 @@ kana_to_pattern::kana_to_pattern()
 		{ L'や', "YA" }, { L'ゆ', "YU" }, { L'よ', "YO" },
 		{ L'ら', "RA" }, { L'り', "RI" }, { L'る', "RU" }, { L'れ', "RE" }, { L'ろ', "RO" },
 		{ L'わ', "WA" }, { L'を', "WO" },
-		{ L'ん', "N"  }, { L'っ', "T"  },
+		{ L'ん', "N"  }, { L'ー', "-" },
 		{ L'が', "GA" }, { L'ぎ', "GI" }, { L'ぐ', "GU" }, { L'げ', "GE" }, { L'ご', "GO" },
 		{ L'ざ', "ZA" }, { L'じ', "[ZJ]I" }, { L'ず', "ZU" }, { L'ぜ', "ZE" }, { L'ぞ', "ZO" },
 		{ L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "[DZ]U" }, { L'で', "DE" }, { L'ど', "DO" },
@@ -114,42 +124,57 @@ kana_to_pattern::kana_to_pattern()
 		{ 0, 0 },
 	};
 
+	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
+		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
+
 	static const struct kana_pair_to_romaji {
-		const wchar_t *kana_pair;
+		const wchar_t *kana;
 		const char *romaji;
 	} kana_pair_to_romaji_table[] = {
 		{ L"きゃ", "KYA" }, { L"きゅ", "KYU" }, { L"きょ", "KYO" },
-		{ L"しゃ", "SHA" }, { L"しゅ", "SHU" }, { L"しょ", "SHO" },
-		{ L"ちゃ", "CHA" }, { L"ちゅ", "CHU" }, { L"ちょ", "CHO" },
+		{ L"しゃ", "S[YH]A" }, { L"しゅ", "S[YH]U" }, { L"しょ", "S[YH]O" },
+		{ L"ちゃ", "[TC][YH]A" }, { L"ちゅ", "[TC][YH]U" }, { L"ちょ", "[TC][YH]O" },
 		{ L"にゃ", "NYA" }, { L"にゅ", "NYU" }, { L"にょ", "NYO" },
 		{ L"ひゃ", "HYA" }, { L"ひゅ", "HYU" }, { L"ひょ", "HYO" },
 		{ L"みゃ", "MYA" }, { L"みゅ", "MYU" }, { L"みょ", "MYO" },
 		{ L"りゃ", "RYA" }, { L"りゅ", "RYU" }, { L"りょ", "RYO" },
 		{ L"ぎゃ", "GYA" }, { L"ぎゅ", "GYU" }, { L"ぎょ", "GYO" },
-		{ L"じゃ", "JA"  }, { L"じゅ", "JU"  }, { L"じょ", "JO"  },
+		{ L"じゃ", "[ZJ]Y?A"  }, { L"じゅ", "[ZJ]Y?U"  }, { L"じょ", "[ZJ]Y?O"  },
 		{ L"びゃ", "BYA" }, { L"びゅ", "BYU" }, { L"びょ", "BYO" },
 		{ L"ぴゃ", "PYA" }, { L"ぴゅ", "PYU" }, { L"ぴょ", "PYO" },
+		{ L"った", "TTA" }, { L"っち", "TTI" }, { L"っつ", "TTU" }, { L"って", "TTE" }, { L"っと", "TTO" },
+		{ L"っさ", "SSA" }, { L"っし", "SSI" }, { L"っす", "SSU" }, { L"っせ", "SSE" }, { L"っそ", "SSO" },
+		{ L"っか", "KKA" }, { L"っき", "KKI" }, { L"っく", "KKU" }, { L"っけ", "KKE" }, { L"っこ", "KKO" },
 		{ 0, 0 }
 	};
 
-	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
-		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
+	for (const kana_pair_to_romaji *p = kana_pair_to_romaji_table; p->kana; p++)
+		kana_pair_to_pattern_map[std::pair<wchar_t, wchar_t>(p->kana[0], p->kana[1])] = parse_pattern(p->romaji);
 }
 
 kana_to_pattern::~kana_to_pattern()
 {
-	for (map::iterator i = kana_to_pattern_map.begin(); i != kana_to_pattern_map.end(); i++)
+	for (kana_map::iterator i = kana_to_pattern_map.begin(); i != kana_to_pattern_map.end(); i++)
+		delete i->second;
+
+	for (kana_pair_map::iterator i = kana_pair_to_pattern_map.begin(); i != kana_pair_to_pattern_map.end(); i++)
 		delete i->second;
 }
 
 pattern_node *
-kana_to_pattern::find(const wchar_t ch)
+kana_to_pattern::find_single(const wchar_t kana)
 {
-	static kana_to_pattern instance;
+	kana_to_pattern& instance = get_instance();
+	kana_map::iterator i = instance.kana_to_pattern_map.find(kana);
+	return i != instance.kana_to_pattern_map.end() ? i->second : 0;
+}
 
-	map::iterator i = instance.kana_to_pattern_map.find(ch);
-
-	return i == instance.kana_to_pattern_map.end() ? 0 : i->second;
+pattern_node *
+kana_to_pattern::find_pair(wchar_t first, wchar_t second)
+{
+	kana_to_pattern& instance = get_instance();
+	kana_pair_map::iterator i = instance.kana_pair_to_pattern_map.find(std::pair<wchar_t, wchar_t>(first, second));
+	return i != instance.kana_pair_to_pattern_map.end() ? i->second : 0;
 }
 
 struct romaji_iterator {
@@ -176,8 +201,13 @@ struct romaji_iterator {
 
 	void next_pattern()
 	{
-		if (!(cur_pattern = cur_pattern->next))
-			cur_pattern = kana_to_pattern::find(*kana++);
+		if (!(cur_pattern = cur_pattern->next)) {
+			if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
+				kana += 2;
+			} else if ((cur_pattern = kana_to_pattern::find_single(kana[0]))) {
+				++kana;
+			}
+		}
 	}
 
 	const pattern_node *cur_pattern;
@@ -250,8 +280,11 @@ kana_buffer::set_kana(const wchar_t *p)
 void
 kana_buffer::consume_kana()
 {
-	const wchar_t ch = kana[kana_index++];
-	cur_pattern = ch == L'\0' ? 0 : kana_to_pattern::find(ch);
+	if ((cur_pattern = kana_to_pattern::find_pair(kana[kana_index], kana[kana_index + 1]))) {
+		kana_index += 2;
+	} else if ((cur_pattern = kana_to_pattern::find_single(kana[kana_index]))) {
+		++kana_index;
+	}
 }
 
 static kana_buffer input_buffer;
