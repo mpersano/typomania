@@ -15,9 +15,9 @@ spectrum_bars::spectrum_bars(const ogg_player& player, int x, int y, int w, int 
 { }
 
 void
-spectrum_bars::update(int cur_tic)
+spectrum_bars::update(unsigned cur_ms)
 {
-	update_spectrum_window(cur_tic);
+	update_spectrum_window(cur_ms);
 }
 
 void
@@ -30,17 +30,17 @@ spectrum_bars::draw() const
 }
 
 void
-spectrum_bars::update_spectrum_window(int cur_tic)
+spectrum_bars::update_spectrum_window(unsigned cur_ms)
 {
 	const int buffer_samples = player.get_num_buffer_samples();
 	const int total_buffer_samples = buffer_samples*ogg_player::NUM_BUFFERS;
 
-	// 30 tics/second
-	// ogg_player::rate samples/second
+	// ogg_player::rate samples --> 1 second
+	// y samples --> cur_ms msecs
 
 	// 1 tic --> ogg_player::rate/30 samples
 
-	int sample_index = (cur_tic*player.rate/TICS_PER_SECOND)%total_buffer_samples;
+	unsigned sample_index = (static_cast<unsigned long long>(cur_ms)*player.rate/1000)%total_buffer_samples;
 
 	for (int i = 0; i < WINDOW_SIZE; i++) {
 		const ogg_player::buffer& buf = player.buffers[sample_index/buffer_samples];

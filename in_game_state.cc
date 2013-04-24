@@ -292,10 +292,9 @@ static kana_buffer input_buffer;
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
 , spectrum(player, 100, 50, 800, 128, 64)
-, cur_tic(0)
 , cur_serifu(cur_kashi.begin())
-, cur_serifu_ms(0)
 , total_ms(0)
+, serifu_ms(0)
 , score(0)
 , display_score(0)
 , combo(0)
@@ -307,6 +306,8 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , medium_font(font_cache["data/fonts/medium_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
+	input_buffer.set_kana(&cur_serifu->kana[0]);
+
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
@@ -314,11 +315,10 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.start(.1);
-
+	player.start(1.);
 	spectrum.update(0);
 
-	input_buffer.set_kana(&cur_serifu->kana[0]);
+	start_ms = start_serifu_ms = SDL_GetTicks();
 }
 
 in_game_state::~in_game_state()
@@ -354,20 +354,18 @@ in_game_state::redraw() const
 void
 in_game_state::update()
 {
-	++cur_tic;
+	unsigned now = SDL_GetTicks();
 
-	player.update();
-	spectrum.update(cur_tic);
-
-	total_ms += 1000/TICS_PER_SECOND;
+	total_ms = now - start_ms;
 
 	if (cur_serifu != cur_kashi.end()) {
-		cur_serifu_ms += 1000/TICS_PER_SECOND;
+		serifu_ms = now - start_serifu_ms;
 
-		const int duration = cur_serifu->duration;
+		const unsigned duration = cur_serifu->duration;
 
-		if (cur_serifu_ms >= duration) {
-			cur_serifu_ms -= duration;
+		if (serifu_ms >= duration) {
+			start_serifu_ms += duration;
+			serifu_ms -= duration;
 
 			if (++cur_serifu != cur_kashi.end())
 				input_buffer.set_kana(&cur_serifu->kana[0]);
@@ -377,6 +375,10 @@ in_game_state::update()
 	display_score += (score - display_score)/2;
 	if (abs(display_score - score) == 1)
 		display_score = score;
+
+	player.update();
+
+	spectrum.update(total_ms);
 }
 
 void
@@ -490,7 +492,7 @@ in_game_state::draw_time_bars() const
 
 	const kashi::serifu& serifu = *cur_serifu;
 
-	draw_time_bar(170, L"INTERVAL", cur_serifu_ms, serifu.duration);
+	draw_time_bar(170, L"INTERVAL", serifu_ms, serifu.duration);
 	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration);
 }
 

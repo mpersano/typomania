@@ -36,10 +36,10 @@ private:
 	ogg_player player;
 	spectrum_bars spectrum;
 
-	int cur_tic;
-
 	kashi::const_iterator cur_serifu;
-	int cur_serifu_ms, total_ms;
+
+	unsigned start_ms, start_serifu_ms;
+	unsigned total_ms, serifu_ms;
 
 	int song_duration; // in seconds
 

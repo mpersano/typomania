@@ -9,12 +9,11 @@ class spectrum_bars {
 public:
 	spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bars);
 
-	void update(int cur_tic);
-
+	void update(unsigned cur_ms);
 	void draw() const;
 
 private:
-	void update_spectrum_window(int cur_tic);
+	void update_spectrum_window(unsigned cur_ms);
 
 	void render_spectrum_bars(const float *samples, int num_samples, float scale) const;
 
