@@ -5,7 +5,7 @@ OBJS = $(CXXFILES:.cc=.o)
 
 LIBS = -lGL -lGLU `sdl-config --libs` -lpng -lopenal -logg -lvorbis -lvorbisfile
 
-CXXFLAGS = `sdl-config --cflags` -Wall -g -O2
+CXXFLAGS = `sdl-config --cflags` -Wall -g -O2 -DMUTE
 
 CXXFILES =  \
 	fft.cc \
@@ -21,7 +21,7 @@ CXXFILES =  \
 	ogg_player.cc \
 	panic.cc \
 	spectrum_bars.cc \
-	utf8.cc \
+	utf8.cc
 
 TARGET = typomania
 

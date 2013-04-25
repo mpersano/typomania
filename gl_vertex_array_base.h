@@ -48,7 +48,7 @@ public:
 #endif
 
 #ifdef WITH_TEXUV
-	float add_stringn(const font *fi, const wchar_t *str, int size,
+	float add_stringn(const font *fi, const wchar_t *str, size_t len,
 #ifdef WITH_COLOR
 	  int r, int g, int b, int a,
 #endif

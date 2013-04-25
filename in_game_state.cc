@@ -139,7 +139,7 @@ kana_to_pattern::kana_to_pattern()
 		{ L"みゃ", "MYA" }, { L"みゅ", "MYU" }, { L"みょ", "MYO" },
 		{ L"りゃ", "RYA" }, { L"りゅ", "RYU" }, { L"りょ", "RYO" },
 		{ L"ぎゃ", "GYA" }, { L"ぎゅ", "GYU" }, { L"ぎょ", "GYO" },
-		{ L"じゃ", "[ZJ]Y?A"  }, { L"じゅ", "[ZJ]Y?U"  }, { L"じょ", "[ZJ]Y?O"  },
+		{ L"じゃ", "[JZ]Y?A"  }, { L"じゅ", "[JZ]Y?U"  }, { L"じょ", "[JZ]Y?O"  }, // should display ZYA/ZYU/ZYO for consistency
 		{ L"びゃ", "BYA" }, { L"びゅ", "BYU" }, { L"びょ", "BYO" },
 		{ L"ぴゃ", "PYA" }, { L"ぴゅ", "PYU" }, { L"ぴょ", "PYO" },
 		{ L"った", "TTA" }, { L"っち", "TTI" }, { L"っつ", "TTU" }, { L"って", "TTE" }, { L"っと", "TTO" },
@@ -178,7 +178,7 @@ kana_to_pattern::find_pair(wchar_t first, wchar_t second)
 }
 
 struct romaji_iterator {
-	romaji_iterator(const pattern_node *pattern, const wchar_t *kana)
+	romaji_iterator(const pattern_node *pattern, const serifu_kana_iterator& kana)
 	: cur_pattern(pattern), kana(kana)
 	{
 		while (cur_pattern && cur_pattern->is_optional)
@@ -202,25 +202,30 @@ struct romaji_iterator {
 	void next_pattern()
 	{
 		if (!(cur_pattern = cur_pattern->next)) {
+#if 0
 			if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
 				kana += 2;
-			} else if ((cur_pattern = kana_to_pattern::find_single(kana[0]))) {
+			} else 
+#endif
+			if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
 				++kana;
 			}
 		}
 	}
 
 	const pattern_node *cur_pattern;
-	const wchar_t *kana;
+	serifu_kana_iterator kana;
 };
 
 class kana_buffer {
 public:
 	kana_buffer()
-	: kana(0), kana_index(0), cur_pattern(0)
+	: cur_serifu(0)
+	, cur_pattern(0)
+	, num_consumed(0)
 	{ }
 
-	void set_kana(const wchar_t *p);
+	void set_serifu(const serifu *cur_serifu);
 
 	bool on_key_down(int keysym);
 
@@ -228,17 +233,17 @@ public:
 	{ return !cur_pattern; }
 
 	int get_num_consumed() const
-	{ return kana_index - 1; }
+	{ return num_consumed; }
 
 	romaji_iterator get_romaji_iterator() const
-	{ return romaji_iterator(cur_pattern, &kana[kana_index]); }
+	{ return romaji_iterator(cur_pattern, kana); }
 
 private:
 	void consume_kana();
 
-	const wchar_t *kana;
-	int kana_index;
 	const pattern_node *cur_pattern;
+	int num_consumed;
+	serifu_kana_iterator kana;
 };
 
 bool
@@ -270,28 +275,32 @@ kana_buffer::on_key_down(int keysym)
 }
 
 void
-kana_buffer::set_kana(const wchar_t *p)
+kana_buffer::set_serifu(const serifu *next_serifu)
 {
-	kana = p;
-	kana_index = 0;
+	cur_serifu = next_serifu;
+
 	consume_kana();
 }
 
 void
 kana_buffer::consume_kana()
 {
+#if 0
 	if ((cur_pattern = kana_to_pattern::find_pair(kana[kana_index], kana[kana_index + 1]))) {
 		kana_index += 2;
 	} else if ((cur_pattern = kana_to_pattern::find_single(kana[kana_index]))) {
 		++kana_index;
 	}
+#endif
 }
 
 static kana_buffer input_buffer;
 
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
+#ifndef MUTE
 , spectrum(player, 100, 50, 800, 128, 64)
+#endif
 , cur_serifu(cur_kashi.begin())
 , total_ms(0)
 , serifu_ms(0)
@@ -306,17 +315,19 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , medium_font(font_cache["data/fonts/medium_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
-	input_buffer.set_kana(&cur_serifu->kana[0]);
+	input_buffer.set_serifu(*cur_serifu);
 
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
+#ifndef MUTE
 	player.open(path.str());
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.start(1.);
+	player.start(.1);
 	spectrum.update(0);
+#endif
 
 	start_ms = start_serifu_ms = SDL_GetTicks();
 }
@@ -328,7 +339,9 @@ void
 in_game_state::redraw() const
 {
 	glColor4f(1, 1, 1, .1);
+#ifndef MUTE
 	spectrum.draw();
+#endif
 
 	draw_time_bars();
 
@@ -361,14 +374,14 @@ in_game_state::update()
 	if (cur_serifu != cur_kashi.end()) {
 		serifu_ms = now - start_serifu_ms;
 
-		const unsigned duration = cur_serifu->duration;
+		const unsigned duration = (*cur_serifu)->duration;
 
 		if (serifu_ms >= duration) {
 			start_serifu_ms += duration;
 			serifu_ms -= duration;
 
 			if (++cur_serifu != cur_kashi.end())
-				input_buffer.set_kana(&cur_serifu->kana[0]);
+				input_buffer.set_serifu(*cur_serifu);
 		}
 	}
 
@@ -376,9 +389,10 @@ in_game_state::update()
 	if (abs(display_score - score) == 1)
 		display_score = score;
 
+#ifndef MUTE
 	player.update();
-
 	spectrum.update(total_ms);
+#endif
 }
 
 void
@@ -490,48 +504,26 @@ in_game_state::draw_time_bars() const
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	const kashi::serifu& serifu = *cur_serifu;
-
-	draw_time_bar(170, L"INTERVAL", serifu_ms, serifu.duration);
+	draw_time_bar(170, L"INTERVAL", serifu_ms, (*cur_serifu)->duration);
+#ifndef MUTE
 	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration);
+#endif
 }
 
 void
-in_game_state::draw_serifu(const kashi::serifu& serifu, int num_consumed, float alpha) const
+in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) const
 {
 	const float base_x = 100;
+	const float base_y = 70;
 
-	static gl_vertex_array_texuv gv(256);
-
-	// kana
-
-	tiny_font->texture.bind();
-
-	glColor4f(1, 1, 0, alpha);
-	gv.reset();
-	float next_x = gv.add_stringn(tiny_font, &serifu.kana[0], num_consumed, base_x, 96);
-	gv.draw(GL_QUADS);
-
-	if (serifu.kana[num_consumed]) {
-		glColor4f(1, 1, 1, alpha);
-		gv.reset();
-		gv.add_string(tiny_font, &serifu.kana[num_consumed], next_x, 96);
-		gv.draw(GL_QUADS);
-	}
-
-	// kanji
-
-	small_font->texture.bind();
-
-	glColor4f(1, 1, 1, alpha);
-	gv.reset();
-	gv.add_string(small_font, &serifu.kanji[0], base_x, 70);
-	gv.draw(GL_QUADS);
+	glColor4f(1, 1, 1, 1);
+	serifu->draw(base_x, base_y);
 }
 
 void
 in_game_state::draw_input_buffer() const
 {
+#if 0
 	const float base_y = 30;
 	const float base_x = 20;
 
@@ -571,6 +563,7 @@ in_game_state::draw_input_buffer() const
 
 	small_font->texture.bind();
 	gv.draw(GL_QUADS);
+#endif
 }
 
 float 

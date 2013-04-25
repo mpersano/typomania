@@ -124,13 +124,13 @@ NAME::add_string(const font *fi, const wchar_t *str,
 
 #ifdef WITH_TEXUV
 float
-NAME::add_stringn(const font *fi, const wchar_t *str, int n,
+NAME::add_stringn(const font *fi, const wchar_t *str, size_t len,
 #ifdef WITH_COLOR
 		int r, int g, int b, int a,
 #endif
 		float x, float y)
 {
-	for (int i = 0; i < n && str[i]; i++) {
+	for (size_t i = 0; i < len; i++) {
 		const font::glyph *gi = fi->find_glyph(str[i]);
 		add_glyph(gi,
 #ifdef WITH_COLOR

@@ -20,6 +20,9 @@ const font::glyph *
 font::find_glyph(int code) const
 {
 	glyph_cont::const_iterator i = glyph_map.find(code);
+if (i == glyph_map.end()) {
+	panic("glyph %d not found\n", code);
+}
 	return i != glyph_map.end() ? i->second : 0;
 }
 
@@ -37,17 +40,13 @@ font::get_string_width(const wchar_t *str) const
 }
 
 int
-font::get_integer_width(int n) const
+font::get_string_width(const wchar_t *str, size_t len) const
 {
 	int width = 0;
 
-	if (n == 0) {
-		width = find_glyph('0')->advance_x;
-	} else {
-		while (n) {
-			width += find_glyph('0' + (n%10))->advance_x;
-			n /= 10;
-		}
+	for (size_t i = 0; i < len; i++) {
+		const glyph *g = find_glyph(str[i]);
+		width += g->advance_x;
 	}
 
 	return width;

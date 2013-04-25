@@ -21,7 +21,7 @@ private:
 	void draw_time_bars() const;
 	void draw_time_bar(float y, const wchar_t *label, int partial, int total) const;
 
-	void draw_serifu(const kashi::serifu& serifu, int num_consumed, float alpha) const;
+	void draw_serifu(const serifu *serifu, int num_consumed, float alpha) const;
 
 	void draw_input_buffer() const;
 
@@ -33,8 +33,10 @@ private:
 
 	const kashi& cur_kashi;
 
+#ifndef MUTE
 	ogg_player player;
 	spectrum_bars spectrum;
+#endif
 
 	kashi::const_iterator cur_serifu;
 

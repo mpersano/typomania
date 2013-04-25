@@ -22,8 +22,9 @@ struct font {
 	};
 
 	const glyph *find_glyph(int ch) const;
+
 	int get_string_width(const wchar_t *str) const;
-	int get_integer_width(int n) const;
+	int get_string_width(const wchar_t *str, size_t len) const;
 
 	typedef std::map<int, glyph *> glyph_cont;
 	glyph_cont glyph_map;

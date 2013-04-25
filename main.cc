@@ -131,7 +131,9 @@ void
 init()
 {
 	init_sdl();
+#ifndef MUTE
 	init_openal();
+#endif
 	the_game.reset(new game);
 }
 
@@ -140,7 +142,9 @@ release()
 {
 	the_game.reset(0);
 	release_sdl();
+#ifndef MUTE
 	release_openal();
+#endif
 }
 
 int
