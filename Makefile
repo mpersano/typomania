@@ -8,6 +8,7 @@ LIBS = -lGL -lGLU `sdl-config --libs` -lpng -lopenal -logg -lvorbis -lvorbisfile
 CXXFLAGS = `sdl-config --cflags` -Wall -g -O2 -DMUTE
 
 CXXFILES =  \
+	main.cc \
 	fft.cc \
 	font.cc \
 	game.cc \
@@ -17,11 +18,12 @@ CXXFILES =  \
 	in_game_state.cc \
 	song_menu_state.cc \
 	kashi.cc \
-	main.cc \
 	ogg_player.cc \
 	panic.cc \
 	spectrum_bars.cc \
-	utf8.cc
+	utf8.cc \
+	kana.cc \
+	pattern.cc
 
 TARGET = typomania
 

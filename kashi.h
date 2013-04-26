@@ -71,18 +71,41 @@ struct serifu {
 	section_cont section_list;
 };
 
-struct serifu_kana_iterator {
+class serifu_kana_iterator {
+public:
+	serifu_kana_iterator() { }
 	serifu_kana_iterator(const serifu *s);
 
 	wchar_t operator*() const;
 	serifu_kana_iterator& operator++();
 
+private:
 	void next();
 	void skip_non_kana();
 	wchar_t cur_kana() const;
 
 	serifu::const_iterator iter, end;
 	size_t cur_part_index;
+};
+
+struct pattern_node;
+
+struct serifu_romaji_iterator {
+public:
+	serifu_romaji_iterator() { }
+	serifu_romaji_iterator(const serifu *s);
+	serifu_romaji_iterator(const pattern_node *cur_pattern, const serifu_kana_iterator& kana);
+
+	serifu_romaji_iterator& operator++();
+
+	char operator*() const;
+
+private:
+	void next();
+	void skip_optional_pattern();
+
+	serifu_kana_iterator kana;
+	const pattern_node *cur_pattern;
 };
 
 class kashi {

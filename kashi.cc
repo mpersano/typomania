@@ -6,6 +6,8 @@
 
 #include "panic.h"
 #include "common.h"
+#include "pattern.h"
+#include "kana.h"
 #include "gl_vertex_array.h"
 #include "kashi.h"
 
@@ -78,11 +80,15 @@ kashi::load(const char *path)
 void
 kashi::init_level()
 {
-#if 0
 	float top_kana_per_ms = 0;
 
 	for (serifu_cont::const_iterator i = serifu_list.begin(); i != serifu_list.end(); i++) {
-		float kana_per_ms = static_cast<float>(i->kana.size())/i->duration;
+		int kana_count = 0;
+
+		for (serifu_kana_iterator j(*i); *j; ++j)
+			++kana_count;
+
+		float kana_per_ms = static_cast<float>(kana_count)/(*i)->duration;
 
 		if (kana_per_ms > top_kana_per_ms)
 			top_kana_per_ms = kana_per_ms;
@@ -92,9 +98,6 @@ kashi::init_level()
 
 	if (level >= 100)
 		level = 99;
-#else
-	level = 1;
-#endif
 }
 
 serifu::~serifu()
@@ -247,8 +250,10 @@ serifu_kana_iterator::operator*() const
 serifu_kana_iterator&
 serifu_kana_iterator::operator++()
 {
-	next();
-	skip_non_kana();
+	if (iter != end) {
+		next();
+		skip_non_kana();
+	}
 
 	return *this;
 }
@@ -285,4 +290,53 @@ serifu_kana_iterator::next()
 			cur_part_index = 0;
 		}
 	}
+}
+
+serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
+: kana(s)
+{
+	if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
+		++kana;
+		skip_optional_pattern();
+	}
+}
+
+serifu_romaji_iterator::serifu_romaji_iterator(const pattern_node *cur_pattern, const serifu_kana_iterator& kana)
+: kana(kana), cur_pattern(cur_pattern)
+{
+	skip_optional_pattern();
+}
+
+
+serifu_romaji_iterator&
+serifu_romaji_iterator::operator++()
+{
+	if (cur_pattern) {
+		next();
+		skip_optional_pattern();
+	}
+
+	return *this;
+}
+
+char
+serifu_romaji_iterator::operator*() const
+{
+	return cur_pattern ? cur_pattern->get_char() : 0;
+}
+
+void
+serifu_romaji_iterator::next()
+{
+	if (!(cur_pattern = cur_pattern->next)) {
+		if ((cur_pattern = kana_to_pattern::find_single(*kana)))
+			++kana;
+	}
+}
+
+void
+serifu_romaji_iterator::skip_optional_pattern()
+{
+	while (cur_pattern && cur_pattern->is_optional)
+		next();
 }
