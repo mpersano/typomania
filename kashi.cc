@@ -180,17 +180,17 @@ serifu::parse(const wstring& text)
 }
 
 void
-serifu::draw(float x, float y, int num_highlighted) const
+serifu::draw(float x, float y, int num_highlighted, float alpha) const
 {
 	for (section_cont::const_iterator i = section_list.begin(); i != section_list.end(); i++) {
 		const serifu_part *p = *i;
-		num_highlighted = p->draw(x, y, num_highlighted);
+		num_highlighted = p->draw(x, y, num_highlighted, alpha);
 		x += p->get_width();
 	}
 }
 
 int
-serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted) const
+serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, float alpha) const
 {
 	size_t len = 0;
 
@@ -207,7 +207,7 @@ serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int
 	f->texture.bind();
 
 	if (len) {
-		glColor3f(1, 0, 0);
+		glColor4f(1, 0, 0, alpha);
 
 		gv.reset();
 		x = gv.add_stringn(f, &kana[0], len, x, y);
@@ -215,7 +215,7 @@ serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int
 	}
 
 	if (len < kana.size()) {
-		glColor3f(1, 1, 1);
+		glColor4f(1, 1, 1, alpha);
 
 		gv.reset();
 		gv.add_stringn(f, &kana[len], kana.size() - len, x, y);
@@ -236,9 +236,9 @@ serifu_kana_part::get_width() const
 }
 
 int
-serifu_kana_part::draw(float x, float y, int num_highlighted) const
+serifu_kana_part::draw(float x, float y, int num_highlighted, float alpha) const
 {
-	return draw_kana(kana_font, x, y, kana, num_highlighted);
+	return draw_kana(kana_font, x, y, kana, num_highlighted, alpha);
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -254,16 +254,16 @@ serifu_furigana_part::get_width() const
 }
 
 int
-serifu_furigana_part::draw(float x, float y, int num_highlighted) const
+serifu_furigana_part::draw(float x, float y, int num_highlighted, float alpha) const
 {
 	const int width = get_width();
 
 	int num_kana = std::count_if(furigana.begin(), furigana.end(), is_kana);
 
 	if (num_highlighted >= num_kana)
-		glColor3f(1, 0, 0);
+		glColor4f(1, 0, 0, alpha);
 	else
-		glColor3f(1, 1, 1);
+		glColor4f(1, 1, 1, alpha);
 
 	static gl_vertex_array_texuv gv(256);
 
@@ -275,7 +275,7 @@ serifu_furigana_part::draw(float x, float y, int num_highlighted) const
 
 	return draw_kana(furigana_font, 
 	  x + .5*width - .5*(furigana_font->get_string_width(&furigana[0], furigana.size())), y + 26,
-	  furigana, num_highlighted);
+	  furigana, num_highlighted, alpha);
 }
 
 serifu_kana_iterator::serifu_kana_iterator(const serifu *s)

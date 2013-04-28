@@ -316,7 +316,7 @@ in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) 
 	const float base_y = 70;
 
 	glColor4f(1, 1, 1, alpha);
-	serifu->draw(base_x, base_y, num_consumed);
+	serifu->draw(base_x, base_y, num_consumed, alpha);
 }
 
 void

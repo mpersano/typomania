@@ -12,9 +12,9 @@ struct serifu_part {
 	virtual const wstring& get_kana() const = 0;
 
 	virtual int get_width() const = 0;
-	virtual int draw(float x, float y, int num_highlighted) const = 0;
+	virtual int draw(float x, float y, int num_highlighted, float alpha) const = 0;
 
-	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted) const;
+	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, float alpha) const;
 };
 
 struct serifu_kana_part : serifu_part {
@@ -25,7 +25,7 @@ struct serifu_kana_part : serifu_part {
 
 	int get_width() const;
 
-	int draw(float x, float y, int num_highlighted) const;
+	int draw(float x, float y, int num_highlighted, float alpha) const;
 
 	wstring kana;
 	font *kana_font;
@@ -38,7 +38,7 @@ struct serifu_furigana_part : serifu_part {
 	{ return furigana; }
 
 	int get_width() const;
-	int draw(float x, float y, int num_highlighted) const;
+	int draw(float x, float y, int num_highlighted, float alpha) const;
 
 	wstring kanji;
 	wstring furigana;
@@ -56,7 +56,7 @@ struct serifu {
 
 	bool parse(const wstring& text);
 
-	void draw(float x, float y, int num_highlighted) const;
+	void draw(float x, float y, int num_highlighted, float alpha) const;
 
 	typedef std::vector<serifu_part *> section_cont;
 	typedef section_cont::iterator iterator;
