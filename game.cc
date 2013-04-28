@@ -29,8 +29,8 @@ game::game()
 	if (kashi_list.empty())
 		panic("no songs loaded?");
 
-	// start_in_game(*kashi_list[0]);
-	start_song_menu();
+	start_in_game(*kashi_list[0]);
+	// start_song_menu();
 }
 
 game::~game()

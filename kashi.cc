@@ -14,7 +14,11 @@
 static bool
 is_kana(wchar_t ch)
 {
-	return ch >= 12352 && ch <= 12447;
+	return
+	  (ch >= 12352 && ch <= 12447) // hiragana
+	  || (ch >= 'A' && ch <= 'Z')
+	  || (ch >= 'a' && ch <= 'z')
+	  || (ch >= '0' && ch <= '9');
 }
 
 static std::vector<char *>

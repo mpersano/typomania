@@ -29,6 +29,21 @@ kana_to_pattern::kana_to_pattern()
 	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
 		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
 
+	for (int i = 'A'; i <= 'Z'; i++) {
+		char pattern[2] = { i, '\0' };
+		kana_to_pattern_map[i] = parse_pattern(pattern);
+	}
+
+	for (int i = 'a'; i <= 'z'; i++) {
+		char pattern[2] = { i - 'a' + 'A', '\0' };
+		kana_to_pattern_map[i] = parse_pattern(pattern);
+	}
+
+	for (int i = '0'; i <= '9'; i++) {
+		char pattern[2] = { i, '\0' };
+		kana_to_pattern_map[i] = parse_pattern(pattern);
+	}
+
 	static const struct kana_pair_to_romaji {
 		const wchar_t *kana;
 		const char *romaji;
