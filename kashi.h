@@ -28,7 +28,6 @@ struct serifu_kana_part : serifu_part {
 	int draw(float x, float y, int num_highlighted) const;
 
 	wstring kana;
-
 	font *kana_font;
 };
 

@@ -254,7 +254,9 @@ serifu_furigana_part::draw(float x, float y, int num_highlighted) const
 {
 	const int width = get_width();
 
-	if (num_highlighted)
+	int num_kana = std::count_if(furigana.begin(), furigana.end(), is_kana);
+
+	if (num_highlighted >= num_kana)
 		glColor3f(1, 0, 0);
 	else
 		glColor3f(1, 1, 1);
