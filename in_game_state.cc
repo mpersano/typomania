@@ -19,6 +19,7 @@ class kana_buffer {
 public:
 	kana_buffer()
 	: cur_pattern(0)
+	, num_consumed(0)
 	{ }
 
 	void set_serifu(const serifu *s);
@@ -28,34 +29,37 @@ public:
 	bool finished() const
 	{ return !cur_pattern; }
 
-#if 0
 	int get_num_consumed() const
 	{ return num_consumed; }
-#endif
 
 	serifu_romaji_iterator get_romaji_iterator() const
 	{ return serifu_romaji_iterator(cur_pattern, kana_iter); }
 
 private:
-	void consume_kana();
+	bool consume_kana();
 
 	const pattern_node *cur_pattern;
 	serifu_kana_iterator kana_iter;
+	int num_consumed;
 };
 
 void
 kana_buffer::set_serifu(const serifu *s)
 {
 	kana_iter = serifu_kana_iterator(s);
+	num_consumed = 0;
 	consume_kana();
 }
 
-void
+bool
 kana_buffer::consume_kana()
 {
 	if (*kana_iter) {
 		cur_pattern = kana_to_pattern::find_single(*kana_iter);
 		++kana_iter;
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -81,8 +85,10 @@ kana_buffer::on_key_down(int keysym)
 		}
 	}
 
-	if (!(cur_pattern = cur_pattern->next))
-		consume_kana();
+	if (!(cur_pattern = cur_pattern->next)) {
+		if (consume_kana())
+			++num_consumed;
+	}
 
 	return true;
 }
@@ -149,7 +155,7 @@ in_game_state::redraw() const
 		if (next_serifu != cur_kashi.end())
 			draw_serifu(*next_serifu, 0, .5);
 	} else if (cur_serifu != cur_kashi.end()) {
-		draw_serifu(*cur_serifu, /* input_buffer.get_num_consumed() */ 0, 1);
+		draw_serifu(*cur_serifu, input_buffer.get_num_consumed(), 1);
 	}
 
 	draw_input_buffer();
@@ -310,7 +316,7 @@ in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) 
 	const float base_y = 70;
 
 	glColor4f(1, 1, 1, alpha);
-	serifu->draw(base_x, base_y);
+	serifu->draw(base_x, base_y, num_consumed);
 }
 
 void

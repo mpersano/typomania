@@ -11,6 +11,12 @@
 #include "gl_vertex_array.h"
 #include "kashi.h"
 
+static bool
+is_kana(wchar_t ch)
+{
+	return ch >= 12352 && ch <= 12447;
+}
+
 static std::vector<char *>
 split(char *str, const char *delim)
 {
@@ -170,13 +176,49 @@ serifu::parse(const wstring& text)
 }
 
 void
-serifu::draw(float x, float y) const
+serifu::draw(float x, float y, int num_highlighted) const
 {
 	for (section_cont::const_iterator i = section_list.begin(); i != section_list.end(); i++) {
 		const serifu_part *p = *i;
-		p->draw(x, y);
+		num_highlighted = p->draw(x, y, num_highlighted);
 		x += p->get_width();
 	}
+}
+
+int
+serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted) const
+{
+	size_t len = 0;
+
+	if (num_highlighted) {
+		while (len < kana.size()) {
+			if (is_kana(kana[len++])) {
+				if (!--num_highlighted)
+					break;
+			}
+		}
+	}
+
+	static gl_vertex_array_texuv gv(256);
+	f->texture.bind();
+
+	if (len) {
+		glColor3f(1, 0, 0);
+
+		gv.reset();
+		x = gv.add_stringn(f, &kana[0], len, x, y);
+		gv.draw(GL_QUADS);
+	}
+
+	if (len < kana.size()) {
+		glColor3f(1, 1, 1);
+
+		gv.reset();
+		gv.add_stringn(f, &kana[len], kana.size() - len, x, y);
+		gv.draw(GL_QUADS);
+	}
+
+	return num_highlighted;
 }
 
 serifu_kana_part::serifu_kana_part()
@@ -189,16 +231,10 @@ serifu_kana_part::get_width() const
 	return kana_font->get_string_width(&kana[0], kana.size());
 }
 
-void
-serifu_kana_part::draw(float x, float y) const
+int
+serifu_kana_part::draw(float x, float y, int num_highlighted) const
 {
-	static gl_vertex_array_texuv gv(256);
-
-	gv.reset();
-	gv.add_stringn(kana_font, &kana[0], kana.size(), x, y);
-
-	kana_font->texture.bind();
-	gv.draw(GL_QUADS);
+	return draw_kana(kana_font, x, y, kana, num_highlighted);
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -213,10 +249,15 @@ serifu_furigana_part::get_width() const
 	  furigana_font->get_string_width(&furigana[0], furigana.size()));
 }
 
-void
-serifu_furigana_part::draw(float x, float y) const
+int
+serifu_furigana_part::draw(float x, float y, int num_highlighted) const
 {
 	const int width = get_width();
+
+	if (num_highlighted)
+		glColor3f(1, 0, 0);
+	else
+		glColor3f(1, 1, 1);
 
 	static gl_vertex_array_texuv gv(256);
 
@@ -226,11 +267,9 @@ serifu_furigana_part::draw(float x, float y) const
 	kanji_font->texture.bind();
 	gv.draw(GL_QUADS);
 
-	gv.reset();
-	gv.add_stringn(furigana_font, &furigana[0], furigana.size(),
-	  x + .5*width - .5*(furigana_font->get_string_width(&furigana[0], furigana.size())), y + 26);
-	furigana_font->texture.bind();
-	gv.draw(GL_QUADS);
+	return draw_kana(furigana_font, 
+	  x + .5*width - .5*(furigana_font->get_string_width(&furigana[0], furigana.size())), y + 26,
+	  furigana, num_highlighted);
 }
 
 serifu_kana_iterator::serifu_kana_iterator(const serifu *s)
@@ -264,7 +303,7 @@ serifu_kana_iterator::skip_non_kana()
 	wchar_t ch;
 
 	while ((ch = cur_kana())) {
-		if (ch >= 12352 && ch <= 12447)
+		if (is_kana(ch))
 			break;
 		operator++();
 	}
