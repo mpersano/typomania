@@ -15,6 +15,11 @@
 
 static const char *STREAM_DIR = "data/streams";
 
+enum {
+	MISS_SCORE = 601,
+	HIT_SCORE = 311,
+};
+
 class kana_buffer {
 public:
 	kana_buffer()
@@ -177,6 +182,17 @@ in_game_state::update()
 		const unsigned duration = (*cur_serifu)->duration;
 
 		if (serifu_ms >= duration) {
+			int n = 0;
+
+			for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
+				++n;
+
+			if (n > 0) {
+				miss += n;
+				score -= MISS_SCORE*n;
+				combo = 0;
+			}
+
 			start_serifu_ms += duration;
 			serifu_ms -= duration;
 
@@ -211,11 +227,11 @@ in_game_state::on_key_down(int keysym)
 		++total_strokes;
 
 		if (!input_buffer.on_key_down(keysym)) {
-			score -= 601;
+			score -= MISS_SCORE;
 			combo = 0;
 			++miss;
 		} else {
-			score += 311;
+			score += HIT_SCORE;
 			if (++combo > max_combo)
 				max_combo = combo;
 		}
