@@ -143,6 +143,7 @@ in_game_state::redraw() const
 #endif
 
 	draw_time_bars();
+	draw_timers();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -310,12 +311,54 @@ in_game_state::draw_time_bars() const
 }
 
 void
+in_game_state::draw_timers() const
+{
+	static gl_vertex_array_texuv gv(11*4);
+	gv.reset();
+
+	const font *f = tiny_font;
+	const int dx = f->find_glyph(L'0')->advance_x;
+
+	float x = WINDOW_WIDTH - 12 - 11*dx;
+	float y = 204;
+
+#define DRAW_GLYPH(c) \
+	gv.add_glyph(f->find_glyph(c), x, y); \
+	x += dx; \
+
+#define DRAW_PART(v) \
+	DRAW_GLYPH(L'0' + (v)/10) \
+	DRAW_GLYPH(L'0' + (v)%10)
+
+#define DRAW_TIMER(ms) \
+	DRAW_PART(((ms/1000)/60)%100) \
+	DRAW_GLYPH(L':') \
+	DRAW_PART((ms/1000)%60) \
+
+	DRAW_TIMER(total_ms)
+	DRAW_GLYPH(L'/')
+	DRAW_TIMER(song_duration)
+
+#undef DRAW_PART
+#undef DRAW_GLYPH
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_TEXTURE_2D);
+
+	f->texture.bind();
+	gv.draw(GL_QUADS);
+
+}
+
+void
 in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) const
 {
 	const float base_x = 100;
 	const float base_y = 70;
 
-	rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
+	const rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
 
 	glPushMatrix();
 	glTranslatef(base_x, base_y, 0);
