@@ -7,7 +7,7 @@ class kashi;
 class menu_item;
 class gl_texture;
 
-class song_menu_state : public state {
+class song_menu_state : public game_state {
 public:
 	typedef std::vector<kashi *> kashi_cont;
 

@@ -6,9 +6,9 @@
 
 #include "kashi.h"
 
-class state {
+class game_state {
 public:
-	virtual ~state() { }
+	virtual ~game_state() { }
 
 	virtual void redraw() const = 0;
 	virtual void update() = 0;
@@ -32,7 +32,7 @@ public:
 private:
 	void load_song_list();
 
-	std::auto_ptr<state> cur_state;
+	std::auto_ptr<game_state> cur_state;
 
 	typedef std::vector<kashi *> kashi_cont;
 	kashi_cont kashi_list;

@@ -18,6 +18,9 @@ static const char *STREAM_DIR = "data/streams";
 enum {
 	MISS_SCORE = 601,
 	HIT_SCORE = 311,
+
+	FADE_OUT_TICS = 60,
+	RESULTS_START_TIC = 120,
 };
 
 class kana_buffer {
@@ -102,6 +105,8 @@ static kana_buffer input_buffer;
 
 in_game_state::in_game_state(const kashi& cur_kashi)
 : cur_kashi(cur_kashi)
+, cur_state(PLAYING)
+, state_tics(0)
 #ifndef MUTE
 , spectrum(player, 100, 50, 800, 128, 64)
 #endif
@@ -129,7 +134,9 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.start(.1);
+	player.set_gain(1.);
+	player.start();
+
 	spectrum.update(0);
 #endif
 
@@ -142,36 +149,66 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	glColor4f(1, 1, 1, .1);
+	draw_song_info();
+
+	switch (cur_state) {
+		case PLAYING:
+			draw_hud(1);
+			break;
+
+		case OUTRO:
+			if (state_tics < FADE_OUT_TICS)
+				draw_hud(1. - static_cast<float>(state_tics)/FADE_OUT_TICS);
+			else if (state_tics >= RESULTS_START_TIC)
+				draw_results(state_tics - RESULTS_START_TIC);
+			break;
+
+		default:
+			assert(0);
+	}
+}
+
+void
+in_game_state::draw_hud(float alpha) const
+{
 #ifndef MUTE
+	glColor4f(1, 1, 1, .1*alpha);
 	spectrum.draw();
 #endif
 
-	draw_time_bars();
-	draw_timers();
+	draw_time_bars(alpha);
+	draw_timers(alpha);
+	draw_serifu(alpha);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_TEXTURE_2D);
-
-	if (input_buffer.finished()) {
-		kashi::const_iterator next_serifu = cur_serifu + 1;
-
-		if (next_serifu != cur_kashi.end())
-			draw_serifu(*next_serifu, 0, .5);
-	} else if (cur_serifu != cur_kashi.end()) {
-		draw_serifu(*cur_serifu, input_buffer.get_num_consumed(), 1);
-	}
-
-	draw_input_buffer();
-	draw_hud_counters();
-	draw_song_info();
+	draw_input_buffer(alpha);
+	draw_hud_counters(alpha);
 }
 
 void
 in_game_state::update()
 {
+	++state_tics;
+
+	if (cur_state == OUTRO && state_tics == FADE_OUT_TICS) {
+		// oh god, this is getting ugly.
+
+		if (cur_serifu != cur_kashi.end()) {
+			int n = 0;
+
+			for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
+				++n;
+
+			for (++cur_serifu; cur_serifu != cur_kashi.end(); ++cur_serifu) {
+				for (serifu_romaji_iterator iter(*cur_serifu); *iter; ++iter)
+					++n;
+			}
+
+			miss += n;
+			total_strokes += n;
+			score -= MISS_SCORE*n;
+		}
+	}
+
 	unsigned now = SDL_GetTicks();
 
 	total_ms = now - start_ms;
@@ -179,25 +216,30 @@ in_game_state::update()
 	if (cur_serifu != cur_kashi.end()) {
 		serifu_ms = now - start_serifu_ms;
 
-		const unsigned duration = (*cur_serifu)->duration;
+		if (cur_state == PLAYING) {
+			const unsigned duration = (*cur_serifu)->duration;
 
-		if (serifu_ms >= duration) {
-			int n = 0;
+			if (serifu_ms >= duration) {
+				int n = 0;
 
-			for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
-				++n;
+				for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
+					++n;
 
-			if (n > 0) {
-				miss += n;
-				score -= MISS_SCORE*n;
-				combo = 0;
+				if (n > 0) {
+					miss += n;
+					total_strokes += n;
+					score -= MISS_SCORE*n;
+					combo = 0;
+				}
+
+				start_serifu_ms += duration;
+				serifu_ms -= duration;
+
+				if (++cur_serifu == cur_kashi.end())
+					set_state(OUTRO);
+				else
+					input_buffer.set_serifu(*cur_serifu);
 			}
-
-			start_serifu_ms += duration;
-			serifu_ms -= duration;
-
-			if (++cur_serifu != cur_kashi.end())
-				input_buffer.set_serifu(*cur_serifu);
 		}
 	}
 
@@ -218,23 +260,26 @@ in_game_state::on_key_up(int keysym)
 void
 in_game_state::on_key_down(int keysym)
 {
-	if (keysym == SDLK_ESCAPE) {
-		the_game->start_song_menu();
-		return;
-	}
+	if (cur_state == PLAYING) {
+		if (keysym == SDLK_ESCAPE) {
+			set_state(OUTRO);
+			player.fade_out(FADE_OUT_TICS);
+		} else if (!input_buffer.finished()) {
+			++total_strokes;
 
-	if (!input_buffer.finished()) {
-		++total_strokes;
-
-		if (!input_buffer.on_key_down(keysym)) {
-			score -= MISS_SCORE;
-			combo = 0;
-			++miss;
-		} else {
-			score += HIT_SCORE;
-			if (++combo > max_combo)
-				max_combo = combo;
+			if (!input_buffer.on_key_down(keysym)) {
+				score -= MISS_SCORE;
+				combo = 0;
+				++miss;
+			} else {
+				score += HIT_SCORE;
+				if (++combo > max_combo)
+					max_combo = combo;
+			}
 		}
+	} else if (cur_state == OUTRO) {
+		// XXX
+		the_game->start_song_menu();
 	}
 }
 
@@ -281,7 +326,7 @@ draw_string(const font *f, float x, float y, const wchar_t *str)
 }
 
 void
-in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total) const
+in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total, float alpha) const
 {
 	const float x = 120;
 	const float w = WINDOW_WIDTH - x - 8;
@@ -290,7 +335,7 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 	const float x0 = x, x1 = x + w, xm = x0 + (x1 - x0)*partial/total;
 	const float y0 = y - .5*h, y1 = y + .5*h;
 
-	glColor4f(1, 1, 1, 1);
+	glColor4f(1, 1, 1, alpha);
 	glEnable(GL_TEXTURE_2D);
 	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
 
@@ -298,36 +343,35 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 
 	glBegin(GL_QUADS);
 
-	glColor3f(1, 1, 1);
+	glColor4f(1, 1, 1, alpha);
 	glVertex2f(x0, y0);
 	glVertex2f(x0, y1);
 	glVertex2f(xm, y1);
 	glVertex2f(xm, y0);
 
-	glColor3f(.5, .5, .5);
+	glColor4f(.5, .5, .5, alpha);
 	glVertex2f(xm, y0);
 	glVertex2f(xm, y1);
 	glVertex2f(x1, y1);
 	glVertex2f(x1, y0);
 
 	glEnd();
-
 }
 
 void
-in_game_state::draw_time_bars() const
+in_game_state::draw_time_bars(float alpha) const
 {
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	draw_time_bar(170, L"INTERVAL", serifu_ms, (*cur_serifu)->duration);
+	draw_time_bar(170, L"INTERVAL", serifu_ms, (*cur_serifu)->duration, alpha);
 #ifndef MUTE
-	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration);
+	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration, alpha);
 #endif
 }
 
 void
-in_game_state::draw_timers() const
+in_game_state::draw_timers(float alpha) const
 {
 	static gl_vertex_array_texuv gv(11*4);
 	gv.reset();
@@ -363,29 +407,56 @@ in_game_state::draw_timers() const
 
 	glEnable(GL_TEXTURE_2D);
 
+	glColor4f(1, 1, 1, alpha);
+
 	f->texture.bind();
 	gv.draw(GL_QUADS);
-
 }
 
 void
-in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) const
+in_game_state::draw_serifu(float alpha) const
 {
-	const float base_x = 100;
-	const float base_y = 70;
+	if (cur_serifu == cur_kashi.end())
+		return;
 
-	const rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
+	const serifu *serifu = 0;
+	int highlighted;
 
-	glPushMatrix();
-	glTranslatef(base_x, base_y, 0);
+	if (!input_buffer.finished()) {
+		serifu = *cur_serifu;
+		highlighted = input_buffer.get_num_consumed();
+	} else {
+		kashi::const_iterator next_serifu = cur_serifu + 1;
 
-	serifu->draw(num_consumed, color);
+		if (next_serifu != cur_kashi.end()) {
+			serifu = *next_serifu;
+			alpha *= .5;
+			highlighted = 0;
+		}
+	}
 
-	glPopMatrix();
+	if (serifu) {
+		const float base_x = 100;
+		const float base_y = 70;
+
+		const rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glEnable(GL_TEXTURE_2D);
+
+		glPushMatrix();
+		glTranslatef(base_x, base_y, 0);
+
+		serifu->draw(highlighted, color);
+
+		glPopMatrix();
+	}
 }
 
 void
-in_game_state::draw_input_buffer() const
+in_game_state::draw_input_buffer(float alpha) const
 {
 	const float base_y = 30;
 	const float base_x = 20;
@@ -397,6 +468,8 @@ in_game_state::draw_input_buffer() const
 	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
 
 	static gl_vertex_array_texuv gv(256);
+
+	glColor4f(1, 1, 1, alpha);
 
 	bool is_first = true;
 
@@ -449,11 +522,11 @@ in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, const wc
 }
 
 void
-in_game_state::draw_hud_counters() const
+in_game_state::draw_hud_counters(float alpha) const
 {
 	const float base_y = 140;
 
-	glColor4f(1, 1, 1, 1);
+	glColor4f(1, 1, 1, alpha);
 
 	if (combo) {
 		draw_integer(small_font, 40, base_y, false, 0, combo);
@@ -464,8 +537,14 @@ in_game_state::draw_hud_counters() const
 	x = draw_hud_counter(x, base_y, L"SCORE", false, 7, display_score) + 50;
 	x = draw_hud_counter(x, base_y, L"MAX COMBO", true, 3, max_combo) + 50;
 	x = draw_hud_counter(x, base_y, L"MISS", true, 3, miss) + 50;
+	draw_hud_counter(x, base_y, L"CORRECT", get_correct_percent());
+}
 
-	wchar_t buf[30] = {0};
+const wchar_t *
+in_game_state::get_correct_percent() const
+{
+	static wchar_t buf[30] = {0};
+
 	if (total_strokes > 0) {
 		if (miss == 0) {
 			wcscpy(buf, L"100%");
@@ -474,13 +553,82 @@ in_game_state::draw_hud_counters() const
 			swprintf(buf, sizeof buf/sizeof *buf, L"%.1f%%", f);
 		}
 	}
-	draw_hud_counter(x, base_y, L"CORRECT", buf);
+
+	return buf;
+}
+
+const wchar_t *
+in_game_state::get_class() const
+{
+	assert(total_strokes > 0);
+
+	const float f = static_cast<float>(total_strokes - miss)/total_strokes;
+
+	if (f < .1) {
+		return L"F";
+	} else if (f < .3) {
+		return L"E";
+	} else if (f < .5) {
+		return L"D";
+	} else if (f < .7) {
+		return L"C";
+	} else if (f < .8) {
+		return L"B";
+	} else if (f < .9) {
+		return L"A";
+	} else if (f < .95) {
+		return L"AA";
+	} else if (f < 1) {
+		return L"AAA";
+	} else {
+		return L"S";
+	}
 }
 
 void
 in_game_state::draw_song_info() const
 {
+	glColor4f(1, 1, 1, 1);
+
 	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
 	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);
 	draw_string(tiny_font, 36, 346, &cur_kashi.artist[0]);
+}
+
+void
+in_game_state::draw_results(int tic) const
+{
+	enum {
+		LINE_FADE_IN_TIC = 20,
+		LINE_INTERVAL = 40,
+	};
+
+	float base_x = WINDOW_WIDTH/2;
+	float base_y = 320;
+
+#define DRAW_LINE(label, ...) \
+	{ \
+	glColor4f(1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1); \
+	draw_hud_counter(base_x - tiny_font->get_string_width(label), base_y, label, __VA_ARGS__); \
+	if ((tic -= LINE_INTERVAL) < 0) \
+		return; \
+	base_y -= 30; \
+	}
+
+	DRAW_LINE(L"MISS", true, 3, miss)
+	DRAW_LINE(L"CORRECT", get_correct_percent())
+	DRAW_LINE(L"MAX COMBO", true, 3, max_combo)
+	DRAW_LINE(L"SCORE", true, 7, score)
+
+	base_y -= 20;
+
+	DRAW_LINE(L"CLASS", get_class())
+#undef DRAW_COUNTER
+}
+
+void
+in_game_state::set_state(state next_state)
+{
+	cur_state = next_state;
+	state_tics = 0;
 }

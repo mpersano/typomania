@@ -8,6 +8,7 @@ ogg_player::ogg_player()
 : playing(false)
 {
 	alGenSources(1, &source);
+	set_gain(1);
 }
 
 ogg_player::~ogg_player()
@@ -54,7 +55,22 @@ ogg_player::close()
 }
 
 void
-ogg_player::start(float gain)
+ogg_player::set_gain(float g)
+{
+	gain = g;
+	alSourcef(source, AL_GAIN, gain);
+}
+
+void
+ogg_player::fade_out(int ttl)
+{
+	fading_out = true;
+	fade_out_ttl = ttl;
+	fade_out_tics = 0;
+}
+
+void
+ogg_player::start()
 {
 	if (playing)
 		return;
@@ -66,11 +82,10 @@ ogg_player::start(float gain)
 			b.queue(source, format, rate);
 	}
 
-	alSourcef(source, AL_GAIN, gain);
-
 	alSourcePlay(source);
 
 	playing = true;
+	fading_out = false;
 }
 
 void
@@ -110,6 +125,16 @@ ogg_player::update()
 		buffer *p = get_buffer(id);
 		if (p->load(&ogg_stream) > 0)
 			p->queue(source, format, rate);
+	}
+
+	if (state == AL_PLAYING && fading_out) {
+		if (++fade_out_tics >= fade_out_ttl) {
+			stop();
+			fading_out = false;
+		} else {
+			const float g = gain*(1. - static_cast<float>(fade_out_tics)/fade_out_ttl);
+			alSourcef(source, AL_GAIN, g);
+		}
 	}
 
 	if (state != AL_PLAYING) {

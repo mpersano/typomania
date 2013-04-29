@@ -7,7 +7,7 @@
 
 struct font;
 
-class in_game_state : public state {
+class in_game_state : public game_state {
 public:
 	in_game_state(const kashi& cur_kashi);
 	~in_game_state();
@@ -18,22 +18,34 @@ public:
 	void on_key_down(int keysym);
 
 private:
-	void draw_time_bars() const;
-	void draw_time_bar(float y, const wchar_t *label, int partial, int total) const;
+	void draw_song_info() const;
 
-	void draw_timers() const;
-
-	void draw_serifu(const serifu *serifu, int num_consumed, float alpha) const;
-
-	void draw_input_buffer() const;
-
-	void draw_hud_counters() const;
+	void draw_hud(float alpha) const;
+	void draw_time_bars(float alpha) const;
+	void draw_time_bar(float y, const wchar_t *label, int partial, int total, float alpha) const;
+	void draw_timers(float alpha) const;
+	void draw_serifu(float alpha) const;
+	void draw_input_buffer(float alpha) const;
+	void draw_hud_counters(float alpha) const;
 	float draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const;
 	float draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const;
 
-	void draw_song_info() const;
+	const wchar_t *get_correct_percent() const;
+	const wchar_t *get_class() const;
+
+	void draw_results(int tic) const;
 
 	const kashi& cur_kashi;
+
+	enum state {
+		PLAYING,
+		OUTRO,
+	};
+
+	state cur_state;
+	void set_state(state next_state);
+
+	int state_tics;
 
 #ifndef MUTE
 	ogg_player player;

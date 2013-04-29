@@ -18,8 +18,11 @@ public:
 	void open(const std::string& path);
 	void close();
 
-	void start(float gain);
+	void start();
 	void stop();
+
+	void set_gain(float g);
+	void fade_out(int ttl);
 
 	void update();
 
@@ -59,7 +62,12 @@ private:
 	int rate;
 	int num_samples;
 
+	float gain;
+
 	bool playing;
+
+	bool fading_out;
+	int fade_out_tics, fade_out_ttl;
 };
 
 #endif // OGG_PLAYER_H_
