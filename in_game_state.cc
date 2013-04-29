@@ -263,7 +263,9 @@ in_game_state::on_key_down(int keysym)
 	if (cur_state == PLAYING) {
 		if (keysym == SDLK_ESCAPE) {
 			set_state(OUTRO);
+#ifndef MUTE
 			player.fade_out(FADE_OUT_TICS);
+#endif
 		} else if (!input_buffer.finished()) {
 			++total_strokes;
 
