@@ -79,6 +79,8 @@ public:
 	serifu_kana_iterator(const serifu *s);
 
 	wchar_t operator*() const;
+	wchar_t operator[](int index) const;
+
 	serifu_kana_iterator& operator++();
 
 private:

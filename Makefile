@@ -5,7 +5,7 @@ OBJS = $(CXXFILES:.cc=.o)
 
 LIBS = -lGL -lGLU `sdl-config --libs` -lpng -lopenal -logg -lvorbis -lvorbisfile
 
-CXXFLAGS = `sdl-config --cflags` -Wall -g -O2 -DMUTE
+CXXFLAGS = `sdl-config --cflags` -Wall -g -O2
 
 CXXFILES =  \
 	main.cc \

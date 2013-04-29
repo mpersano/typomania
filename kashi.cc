@@ -290,6 +290,19 @@ serifu_kana_iterator::operator*() const
 	return cur_kana();
 }
 
+wchar_t
+serifu_kana_iterator::operator[](int index) const
+{
+	serifu_kana_iterator i = *this;
+
+	while (index) {
+		++i;
+		--index;
+	}
+
+	return *i;
+}
+
 serifu_kana_iterator&
 serifu_kana_iterator::operator++()
 {
@@ -338,7 +351,11 @@ serifu_kana_iterator::next()
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
 : kana(s)
 {
-	if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
+	if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
+		++kana;
+		++kana;
+		skip_optional_pattern();
+	} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
 		++kana;
 		skip_optional_pattern();
 	}
@@ -372,8 +389,12 @@ void
 serifu_romaji_iterator::next()
 {
 	if (!(cur_pattern = cur_pattern->next)) {
-		if ((cur_pattern = kana_to_pattern::find_single(*kana)))
+		if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
 			++kana;
+			++kana;
+		} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
+			++kana;
+		}
 	}
 }
 

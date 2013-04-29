@@ -44,7 +44,7 @@ public:
 	{ return serifu_romaji_iterator(cur_pattern, kana_iter); }
 
 private:
-	bool consume_kana();
+	int consume_kana();
 
 	const pattern_node *cur_pattern;
 	serifu_kana_iterator kana_iter;
@@ -59,16 +59,21 @@ kana_buffer::set_serifu(const serifu *s)
 	consume_kana();
 }
 
-bool
+int
 kana_buffer::consume_kana()
 {
 	if (*kana_iter) {
-		cur_pattern = kana_to_pattern::find_single(*kana_iter);
-		++kana_iter;
-		return true;
-	} else {
-		return false;
+		if ((cur_pattern = kana_to_pattern::find_pair(kana_iter[0], kana_iter[1]))) {
+			++kana_iter;
+			++kana_iter;
+			return 2;
+		} else if ((cur_pattern = kana_to_pattern::find_single(*kana_iter))) {
+			++kana_iter;
+			return 1;
+		}
 	}
+
+	return 0;
 }
 
 bool
@@ -93,10 +98,8 @@ kana_buffer::on_key_down(int keysym)
 		}
 	}
 
-	if (!(cur_pattern = cur_pattern->next)) {
-		if (consume_kana())
-			++num_consumed;
-	}
+	if (!(cur_pattern = cur_pattern->next))
+		num_consumed += consume_kana();
 
 	return true;
 }
