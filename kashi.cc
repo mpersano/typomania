@@ -180,12 +180,12 @@ serifu::parse(const wstring& text)
 }
 
 void
-serifu::draw(float x, float y, int num_highlighted, float alpha) const
+serifu::draw(int num_highlighted, float alpha) const
 {
 	for (section_cont::const_iterator i = section_list.begin(); i != section_list.end(); i++) {
 		const serifu_part *p = *i;
-		num_highlighted = p->draw(x, y, num_highlighted, alpha);
-		x += p->get_width();
+		num_highlighted = p->draw(num_highlighted, alpha);
+		glTranslatef(p->get_width(), 0, 0);
 	}
 }
 
@@ -236,9 +236,9 @@ serifu_kana_part::get_width() const
 }
 
 int
-serifu_kana_part::draw(float x, float y, int num_highlighted, float alpha) const
+serifu_kana_part::draw(int num_highlighted, float alpha) const
 {
-	return draw_kana(kana_font, x, y, kana, num_highlighted, alpha);
+	return draw_kana(kana_font, 0, 0, kana, num_highlighted, alpha);
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -254,7 +254,7 @@ serifu_furigana_part::get_width() const
 }
 
 int
-serifu_furigana_part::draw(float x, float y, int num_highlighted, float alpha) const
+serifu_furigana_part::draw(int num_highlighted, float alpha) const
 {
 	const int width = get_width();
 
@@ -269,12 +269,12 @@ serifu_furigana_part::draw(float x, float y, int num_highlighted, float alpha) c
 
 	gv.reset();
 	gv.add_stringn(kanji_font, &kanji[0], kanji.size(),
-	  x + .5*width - .5*(kanji_font->get_string_width(&kanji[0], kanji.size())), y);
+	  .5*width - .5*(kanji_font->get_string_width(&kanji[0], kanji.size())), 0);
 	kanji_font->texture.bind();
 	gv.draw(GL_QUADS);
 
 	return draw_kana(furigana_font, 
-	  x + .5*width - .5*(furigana_font->get_string_width(&furigana[0], furigana.size())), y + 26,
+	  .5*width - .5*(furigana_font->get_string_width(&furigana[0], furigana.size())), 26,
 	  furigana, num_highlighted, alpha);
 }
 
