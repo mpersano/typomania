@@ -137,7 +137,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.set_gain(1.);
+	player.set_gain(.02);
 	player.start();
 
 	spectrum.update(0);
@@ -286,6 +286,24 @@ in_game_state::on_key_down(int keysym)
 		// XXX
 		the_game->start_song_menu();
 	}
+}
+
+static int
+get_num_digits(int n)
+{
+	int num_digits = 0;
+
+	if (n < 0) {
+		++num_digits;
+		n = -n;
+	}
+
+	while (n) {
+		n /= 10;
+		++num_digits;
+	}
+
+	return num_digits ? num_digits : 1;
 }
 
 static float
@@ -569,25 +587,24 @@ in_game_state::get_class() const
 
 	const float f = static_cast<float>(total_strokes - miss)/total_strokes;
 
-	if (f < .1) {
+	if (f < .1)
 		return L"F";
-	} else if (f < .3) {
+	else if (f < .3)
 		return L"E";
-	} else if (f < .5) {
+	else if (f < .5)
 		return L"D";
-	} else if (f < .7) {
+	else if (f < .7)
 		return L"C";
-	} else if (f < .8) {
+	else if (f < .8)
 		return L"B";
-	} else if (f < .9) {
+	else if (f < .9)
 		return L"A";
-	} else if (f < .95) {
+	else if (f < .95)
 		return L"AA";
-	} else if (f < 1) {
+	else if (f < 1)
 		return L"AAA";
-	} else {
+	else
 		return L"S";
-	}
 }
 
 void
@@ -608,27 +625,50 @@ in_game_state::draw_results(int tic) const
 		LINE_INTERVAL = 40,
 	};
 
+	const int digit_width = small_font->find_glyph(L'0')->advance_x;
+
 	float base_x = WINDOW_WIDTH/2;
 	float base_y = 320;
 
-#define DRAW_LINE(label, ...) \
+#define DRAW_LABEL(f, str) \
 	{ \
 	glColor4f(1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1); \
-	draw_hud_counter(base_x - tiny_font->get_string_width(label), base_y, label, __VA_ARGS__); \
+	static gl_vertex_array_texuv gv(80); \
+	gv.reset(); \
+	const font::glyph *g = f->find_glyph(L'X'); \
+	gv.add_string(f, str, base_x - f->get_string_width(str), base_y + .5*g->height - g->top); \
+	f->texture.bind(); \
+	gv.draw(GL_QUADS); \
+	}
+
+#define NEXT_Y \
 	if ((tic -= LINE_INTERVAL) < 0) \
 		return; \
 	base_y -= 30; \
-	}
 
-	DRAW_LINE(L"MISS", true, 3, miss)
-	DRAW_LINE(L"CORRECT", get_correct_percent())
-	DRAW_LINE(L"MAX COMBO", true, 3, max_combo)
-	DRAW_LINE(L"SCORE", true, 7, score)
+#define DRAW_LINE(label, value) \
+	DRAW_LABEL(tiny_font, label) \
+	draw_integer(small_font, base_x + digit_width*(get_num_digits(value) + 1), base_y, false, 0, value); \
+	NEXT_Y
 
-	base_y -= 20;
+	DRAW_LINE(L"MISS", miss)
 
-	DRAW_LINE(L"CLASS", get_class())
-#undef DRAW_COUNTER
+	DRAW_LABEL(tiny_font, L"CORRECT")
+	draw_string(small_font, base_x + 2*digit_width, base_y, get_correct_percent());
+	NEXT_Y
+
+	DRAW_LINE(L"MAX COMBO", max_combo)
+	DRAW_LINE(L"SCORE", score)
+#undef DRAW_LINE
+#undef NEXT_Y
+
+	base_y -= 30;
+
+	glColor4f(1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1);
+
+	DRAW_LABEL(small_font, L"CLASS")
+	draw_string(big_az_font, base_x + 2*digit_width, base_y, get_class());
+#undef DRAW_LABEL
 }
 
 void

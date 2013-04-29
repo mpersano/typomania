@@ -1,7 +1,6 @@
 CXX = g++
 LD = g++
 OBJS = $(CXXFILES:.cc=.o)
-# DUMP_FRAMES = 1
 
 LIBS = -lGL -lGLU `sdl-config --libs` -lpng -lopenal -logg -lvorbis -lvorbisfile
 
