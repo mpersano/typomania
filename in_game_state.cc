@@ -315,11 +315,12 @@ in_game_state::draw_serifu(const serifu *serifu, int num_consumed, float alpha) 
 	const float base_x = 100;
 	const float base_y = 70;
 
+	rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
+
 	glPushMatrix();
 	glTranslatef(base_x, base_y, 0);
 
-	glColor4f(1, 1, 1, alpha);
-	serifu->draw(num_consumed, alpha);
+	serifu->draw(num_consumed, color);
 
 	glPopMatrix();
 }

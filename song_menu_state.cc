@@ -2,6 +2,7 @@
 #include <GL/gl.h>
 
 #include "common.h"
+#include "rgba.h"
 #include "kashi.h"
 #include "gl_vertex_array.h"
 #include "song_menu_state.h"
@@ -10,27 +11,6 @@ enum {
 	MOVE_TICS = 20,
 	ARROW_ANIMATION_TICS = 20
 };
-
-struct rgba {
-	rgba(float r, float g, float b, float a)
-	: r(r), g(g), b(b), a(a)
-	{ }
-
-	rgba operator*(const float s) const
-	{ return rgba(s*r, s*g, s*b, s*a); }
-
-	rgba operator+(const rgba& other) const
-	{ return rgba(r + other.r, g + other.g, b + other.b, a + other.a); }
-
-	rgba operator-(const rgba& other) const
-	{ return rgba(r - other.r, g - other.g, b - other.b, a - other.a); }
-
-	float r, g, b, a;
-};
-
-static rgba
-operator*(float s, const rgba& color)
-{ return color*s; }
 
 static vector2
 get_item_position(const float t)
