@@ -8,7 +8,7 @@
 #include "song_menu_state.h"
 
 enum {
-	START_MOVE_TICS = 30,
+	START_MOVE_TICS = 40,
 	FAST_MOVE_TICS = 10,
 	ARROW_ANIMATION_TICS = 20,
 };
@@ -157,7 +157,7 @@ song_menu_state::song_menu_state(const kashi_cont& kashi_list)
 : cur_state(STATE_IDLE)
 , state_tics(0)
 , cur_selection(0)
-, arrow_keys(0)
+, cur_displayed_position(0)
 , arrow_texture(texture_cache["data/images/arrow.png"])
 , bg_texture(texture_cache["data/images/menu-background.png"])
 {
@@ -205,6 +205,7 @@ song_menu_state::redraw() const
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+#if 0
 	float pos = -cur_selection;
 
 	if (cur_state == STATE_MOVING_UP || cur_state == STATE_MOVING_DOWN) {
@@ -214,6 +215,9 @@ song_menu_state::redraw() const
 
 		pos += offs*dir;
 	}
+#else
+	float pos = -cur_displayed_position;
+#endif
 
 	for (item_cont::const_iterator i = item_list.begin(); i != item_list.end(); i++) {
 		(*i)->render(pos);
@@ -252,14 +256,19 @@ song_menu_state::redraw() const
 void
 song_menu_state::update()
 {
+	static const float EPSILON = 1e-3;
+
+	cur_displayed_position += .1*(cur_selection - cur_displayed_position);
+	if (fabs(cur_displayed_position - cur_selection) < EPSILON)
+		cur_displayed_position = cur_selection;
+
 	++state_tics;
 
 	switch (cur_state) {
 		case STATE_MOVING_UP:
 			if (state_tics == move_tics) {
-				--cur_selection;
-
-				if ((arrow_keys & KEY_UP) && cur_selection > 0) {
+				if (cur_selection > 0) {
+					--cur_selection;
 					move_tics = FAST_MOVE_TICS;
 					set_cur_state(STATE_MOVING_UP);
 				} else {
@@ -270,27 +279,12 @@ song_menu_state::update()
 
 		case STATE_MOVING_DOWN:
 			if (state_tics == move_tics) {
-				++cur_selection;
-
-				if ((arrow_keys & KEY_DOWN) && cur_selection < static_cast<int>(item_list.size()) - 1) {
+				if (cur_selection < static_cast<int>(item_list.size()) - 1) {
+					++cur_selection;
 					move_tics = FAST_MOVE_TICS;
 					set_cur_state(STATE_MOVING_DOWN);
 				} else {
 					set_cur_state(STATE_IDLE);
-				}
-			}
-			break;
-
-		case STATE_IDLE:
-			if (arrow_keys & KEY_UP) {
-				if (cur_selection > 0) {
-					move_tics = START_MOVE_TICS;
-					set_cur_state(STATE_MOVING_UP);
-				}
-			} else if (arrow_keys & KEY_DOWN) {
-				if (cur_selection < static_cast<int>(item_list.size()) - 1) {
-					move_tics = START_MOVE_TICS;
-					set_cur_state(STATE_MOVING_DOWN);
 				}
 			}
 			break;
@@ -303,15 +297,7 @@ song_menu_state::update()
 void
 song_menu_state::on_key_up(int keysym)
 {
-	switch (keysym) {
-		case SDLK_UP:
-			arrow_keys &= ~KEY_UP;
-			break;
-
-		case SDLK_DOWN:
-			arrow_keys &= ~KEY_DOWN;
-			break;
-	}
+	set_cur_state(STATE_IDLE);
 }
 
 void
@@ -319,11 +305,19 @@ song_menu_state::on_key_down(int keysym)
 {
 	switch (keysym) {
 		case SDLK_UP:
-			arrow_keys |= KEY_UP;
+			if (cur_selection > 0) {
+				--cur_selection;
+				move_tics = START_MOVE_TICS;
+				set_cur_state(STATE_MOVING_UP);
+			}
 			break;
 
 		case SDLK_DOWN:
-			arrow_keys |= KEY_DOWN;
+			if (cur_selection < static_cast<int>(item_list.size()) - 1) {
+				++cur_selection;
+				move_tics = START_MOVE_TICS;
+				set_cur_state(STATE_MOVING_DOWN);
+			}
 			break;
 
 		case SDLK_RETURN:

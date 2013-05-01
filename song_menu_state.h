@@ -37,12 +37,7 @@ private:
 	int state_tics;
 
 	int cur_selection;
-
-	enum {
-		KEY_UP = 1,
-		KEY_DOWN = 2,
-	};
-	unsigned arrow_keys;
+	float cur_displayed_position;
 
 	int move_tics;
 
