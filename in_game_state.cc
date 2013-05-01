@@ -176,6 +176,8 @@ kana_buffer::set_serifu(const serifu *s)
 {
 	clear_prev_fx();
 
+	cur_pattern = 0;
+
 	kana_iter = serifu_kana_iterator(s);
 
 	prev_num_consumed = 0;
@@ -281,7 +283,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.set_gain(.1);
+	player.set_gain(1.);
 	player.start();
 
 	spectrum.update(0);
@@ -340,8 +342,6 @@ in_game_state::update()
 	++state_tics;
 
 	if (cur_state == OUTRO && state_tics == FADE_OUT_TICS) {
-		// oh god, this is getting ugly.
-
 		if (cur_serifu != cur_kashi.end()) {
 			int n = 0;
 
@@ -643,6 +643,7 @@ in_game_state::draw_input_buffer(float alpha) const
 	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
 
 	static gl_vertex_array_texuv gv(256);
+	gv.reset();
 
 	glColor4f(1, 1, 1, alpha);
 
