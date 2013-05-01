@@ -209,8 +209,6 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 {
 	glyph_fxs_reset();
 
-	input_buffer.set_serifu(*cur_serifu);
-
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
@@ -224,6 +222,8 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	spectrum.update(0);
 #endif
+
+	set_cur_serifu(*cur_serifu, cur_serifu + 1 == cur_kashi.end());
 
 	start_ms = start_serifu_ms = SDL_GetTicks();
 }
@@ -303,9 +303,7 @@ in_game_state::update()
 		serifu_ms = now - start_serifu_ms;
 
 		if (cur_state == PLAYING) {
-			const unsigned duration = (*cur_serifu)->duration;
-
-			if (serifu_ms >= duration) {
+			if (serifu_ms >= cur_serifu_duration) {
 				int n = 0;
 
 				for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
@@ -318,13 +316,14 @@ in_game_state::update()
 					combo = 0;
 				}
 
-				start_serifu_ms += duration;
-				serifu_ms -= duration;
+				start_serifu_ms += cur_serifu_duration;
+				serifu_ms -= cur_serifu_duration;
 
-				if (++cur_serifu == cur_kashi.end())
+				if (++cur_serifu == cur_kashi.end()) {
 					set_state(OUTRO);
-				else
-					input_buffer.set_serifu(*cur_serifu);
+				} else {
+					set_cur_serifu(*cur_serifu, cur_serifu + 1 == cur_kashi.end());
+				}
 			}
 		}
 	}
@@ -472,7 +471,7 @@ in_game_state::draw_time_bars(float alpha) const
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	draw_time_bar(170, L"INTERVAL", serifu_ms, (*cur_serifu)->duration, alpha);
+	draw_time_bar(170, L"INTERVAL", serifu_ms, cur_serifu_duration, alpha);
 #ifndef MUTE
 	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration, alpha);
 #endif
@@ -778,4 +777,16 @@ in_game_state::set_state(state next_state)
 {
 	cur_state = next_state;
 	state_tics = 0;
+}
+
+void
+in_game_state::set_cur_serifu(const serifu *s, bool is_last)
+{
+	input_buffer.set_serifu(*cur_serifu);
+
+	cur_serifu_duration = (*cur_serifu)->duration;
+#ifndef MUTE
+	if (is_last || cur_serifu_duration > song_duration - total_ms)
+		cur_serifu_duration = song_duration - total_ms;
+#endif
 }

@@ -16,6 +16,8 @@ public:
 	void on_key_down(int keysym);
 
 private:
+	void set_cur_serifu(const serifu *s, bool is_last);
+
 	void draw_song_info() const;
 
 	void draw_hud(float alpha) const;
@@ -55,7 +57,7 @@ private:
 	unsigned start_ms, start_serifu_ms;
 	unsigned total_ms, serifu_ms;
 
-	int song_duration; // in seconds
+	int song_duration, cur_serifu_duration; // in ms
 
 	int score, display_score;
 	int combo;
