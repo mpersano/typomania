@@ -128,6 +128,7 @@ public:
 private:
 	void next();
 	void skip_optional_pattern();
+	void consume_kana();
 
 	serifu_kana_iterator kana;
 	const pattern_node *cur_pattern;

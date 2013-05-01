@@ -1,6 +1,18 @@
 #include "pattern.h"
 #include "kana.h"
 
+static wchar_t
+hira_to_kata(wchar_t ch)
+{
+	return ch - L'あ' + L'ア';
+}
+
+static wchar_t
+half_to_full(wchar_t ch)
+{
+	return ch - L'a' + L'ａ';
+}
+
 kana_to_pattern::kana_to_pattern()
 {
 	static const struct kana_to_romaji {
@@ -26,22 +38,27 @@ kana_to_pattern::kana_to_pattern()
 		{ 0, 0 },
 	};
 
-	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++)
+	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++) {
 		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
+		kana_to_pattern_map[hira_to_kata(p->kana)] = parse_pattern(p->romaji);
+	}
 
 	for (int i = 'A'; i <= 'Z'; i++) {
 		char pattern[2] = { i, '\0' };
 		kana_to_pattern_map[i] = parse_pattern(pattern);
+		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
 	}
 
 	for (int i = 'a'; i <= 'z'; i++) {
 		char pattern[2] = { i - 'a' + 'A', '\0' };
 		kana_to_pattern_map[i] = parse_pattern(pattern);
+		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
 	}
 
 	for (int i = '0'; i <= '9'; i++) {
 		char pattern[2] = { i, '\0' };
 		kana_to_pattern_map[i] = parse_pattern(pattern);
+		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
 	}
 
 	static const struct kana_pair_to_romaji {
@@ -56,7 +73,7 @@ kana_to_pattern::kana_to_pattern()
 		{ L"みゃ", "MYA" }, { L"みゅ", "MYU" }, { L"みょ", "MYO" },
 		{ L"りゃ", "RYA" }, { L"りゅ", "RYU" }, { L"りょ", "RYO" },
 		{ L"ぎゃ", "GYA" }, { L"ぎゅ", "GYU" }, { L"ぎょ", "GYO" },
-		{ L"じゃ", "[JZ]Y?A"  }, { L"じゅ", "[JZ]Y?U"  }, { L"じょ", "[JZ]Y?O"  }, // should display ZYA/ZYU/ZYO for consistency
+		{ L"じゃ", "[JZ]Y?A"  }, { L"じゅ", "[JZ]Y?U"  }, { L"じょ", "[JZ]Y?O"  }, // XXX:should display ZYA/ZYU/ZYO for consistency
 		{ L"びゃ", "BYA" }, { L"びゅ", "BYU" }, { L"びょ", "BYO" },
 		{ L"ぴゃ", "PYA" }, { L"ぴゅ", "PYU" }, { L"ぴょ", "PYO" },
 		{ L"った", "TTA" }, { L"っち", "TTI" }, { L"っつ", "TTU" }, { L"って", "TTE" }, { L"っと", "TTO" },
@@ -65,8 +82,10 @@ kana_to_pattern::kana_to_pattern()
 		{ 0, 0 }
 	};
 
-	for (const kana_pair_to_romaji *p = kana_pair_to_romaji_table; p->kana; p++)
-		kana_pair_to_pattern_map[std::pair<wchar_t, wchar_t>(p->kana[0], p->kana[1])] = parse_pattern(p->romaji);
+	for (const kana_pair_to_romaji *p = kana_pair_to_romaji_table; p->kana; p++) {
+		kana_pair_to_pattern_map[std::make_pair(p->kana[0], p->kana[1])] = parse_pattern(p->romaji);
+		kana_pair_to_pattern_map[std::make_pair(hira_to_kata(p->kana[0]), hira_to_kata(p->kana[1]))] = parse_pattern(p->romaji);
+	}
 }
 
 kana_to_pattern::~kana_to_pattern()

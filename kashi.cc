@@ -15,10 +15,12 @@ static bool
 is_kana(wchar_t ch)
 {
 	return
-	  (ch >= 12352 && ch <= 12447) // hiragana
-	  || (ch >= 'A' && ch <= 'Z')
-	  || (ch >= 'a' && ch <= 'z')
-	  || (ch >= '0' && ch <= '9');
+	  (ch >= 12353 && ch <= 12438) // hiragana
+	  || (ch >= 12449 && ch <= 12538) // katakana
+	  || ch == L'ー'
+	  || (ch >= 'A' && ch <= 'Z') || (ch >= L'Ａ' && ch <= L'Ｚ')
+	  || (ch >= 'a' && ch <= 'z') || (ch >= L'ａ' && ch <= L'ｚ')
+	  || (ch >= '0' && ch <= '9') || (ch >= L'０' && ch <= L'９');
 }
 
 static std::vector<char *>
@@ -345,11 +347,8 @@ serifu_kana_iterator::skip_non_kana()
 {
 	wchar_t ch;
 
-	while ((ch = cur_kana())) {
-		if (is_kana(ch))
-			break;
-		operator++();
-	}
+	while ((ch = cur_kana()) && !is_kana(ch))
+		next();
 }
 
 wchar_t
@@ -390,14 +389,8 @@ serifu_kana_iterator::get_position() const
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
 : kana(s)
 {
-	if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
-		++kana;
-		++kana;
-		skip_optional_pattern();
-	} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
-		++kana;
-		skip_optional_pattern();
-	}
+	consume_kana();
+	skip_optional_pattern();
 }
 
 serifu_romaji_iterator::serifu_romaji_iterator(const pattern_node *cur_pattern, const serifu_kana_iterator& kana)
@@ -405,7 +398,6 @@ serifu_romaji_iterator::serifu_romaji_iterator(const pattern_node *cur_pattern, 
 {
 	skip_optional_pattern();
 }
-
 
 serifu_romaji_iterator&
 serifu_romaji_iterator::operator++()
@@ -427,13 +419,18 @@ serifu_romaji_iterator::operator*() const
 void
 serifu_romaji_iterator::next()
 {
-	if (!(cur_pattern = cur_pattern->next)) {
-		if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
-			++kana;
-			++kana;
-		} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
-			++kana;
-		}
+	if (!(cur_pattern = cur_pattern->next))
+		consume_kana();
+}
+
+void
+serifu_romaji_iterator::consume_kana()
+{
+	if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
+		++kana;
+		++kana;
+	} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
+		++kana;
 	}
 }
 
