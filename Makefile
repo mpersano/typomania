@@ -22,7 +22,8 @@ CXXFILES =  \
 	spectrum_bars.cc \
 	utf8.cc \
 	kana.cc \
-	pattern.cc
+	pattern.cc \
+	glyph_fx.cc
 
 TARGET = typomania
 
