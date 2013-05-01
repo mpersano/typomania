@@ -38,6 +38,14 @@ private:
 
 	int cur_selection;
 
+	enum {
+		KEY_UP = 1,
+		KEY_DOWN = 2,
+	};
+	unsigned arrow_keys;
+
+	int move_tics;
+
 	gl_texture *arrow_texture;
 	gl_texture *bg_texture;
 };
