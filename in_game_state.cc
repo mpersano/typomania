@@ -128,15 +128,15 @@ kana_buffer::consume_kana()
 
 	if (*kana_iter) {
 		if ((cur_pattern = kana_to_pattern::find_pair(kana_iter[0], kana_iter[1]))) {
-			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
+			prev_fx.push_back(kana_iter.get_glyph_fx());
 			++kana_iter;
 
-			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
+			prev_fx.push_back(kana_iter.get_glyph_fx());
 			++kana_iter;
 
 			return 2;
 		} else if ((cur_pattern = kana_to_pattern::find_single(*kana_iter))) {
-			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
+			prev_fx.push_back(kana_iter.get_glyph_fx());
 			++kana_iter;
 
 			return 1;

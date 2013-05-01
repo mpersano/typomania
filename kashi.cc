@@ -9,6 +9,7 @@
 #include "pattern.h"
 #include "kana.h"
 #include "gl_vertex_array.h"
+#include "glyph_fx.h"
 #include "kashi.h"
 
 static bool
@@ -243,8 +244,8 @@ serifu_kana_part::draw(int num_highlighted, const rgba color[2]) const
 	return draw_kana(kana_font, 0, 0, kana, num_highlighted, color);
 }
 
-vector2
-serifu_kana_part::get_kana_position(size_t index) const
+glyph_fx *
+serifu_kana_part::get_kana_glyph_fx(size_t index, const vector2& offset) const
 {
 	assert(index >= 0 && index < kana.size());
 
@@ -252,7 +253,7 @@ serifu_kana_part::get_kana_position(size_t index) const
 	for (size_t i = 0; i < index; i++)
 		x += kana_font->find_glyph(kana[i])->advance_x;
 
-	return vector2(x, 0);
+	return new glyph_fx(kana_font, kana[index], vector2(x, 0) + offset);
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -290,8 +291,8 @@ serifu_furigana_part::draw(int num_highlighted, const rgba color[2]) const
 	  furigana, num_highlighted, color);
 }
 
-vector2
-serifu_furigana_part::get_kana_position(size_t index) const
+glyph_fx *
+serifu_furigana_part::get_kana_glyph_fx(size_t index, const vector2& offset) const
 {
 	assert(index >= 0 && index < furigana.size());
 
@@ -300,7 +301,7 @@ serifu_furigana_part::get_kana_position(size_t index) const
 	for (size_t i = 0; i < index; i++)
 		x += furigana_font->find_glyph(furigana[i])->advance_x;
 
-	return vector2(x, 26);
+	return new glyph_fx(furigana_font, furigana[index], offset + vector2(x, 26));
 }
 
 serifu_kana_iterator::serifu_kana_iterator(const serifu *s)
@@ -374,16 +375,10 @@ serifu_kana_iterator::next()
 	}
 }
 
-const font *
-serifu_kana_iterator::get_font() const
+glyph_fx *
+serifu_kana_iterator::get_glyph_fx() const
 {
-	return (*iter)->get_kana_font();
-}
-
-vector2
-serifu_kana_iterator::get_position() const
-{
-	return vector2(base_x, 0) + (*iter)->get_kana_position(cur_part_index);
+	return (*iter)->get_kana_glyph_fx(cur_part_index, vector2(base_x, 0));
 }
 
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
