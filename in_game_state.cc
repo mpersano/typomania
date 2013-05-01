@@ -57,35 +57,33 @@ glyph_shadow::glyph_shadow(const font *f, wchar_t ch, const vector2& p)
 void
 glyph_shadow::draw() const
 {
-	const float t = static_cast<float>(tics)/TTL;
-
-	const float q = (1. - t);
-	const int r = 255*q;
-	const int g = 255*q;
-	const int b = 255*q;
-	const int a = 255*q;
-
-	const float s = 1. + .5*sin(t*M_PI);
-
-	float x_left = x - s*.5*gi->width;
-	float x_right = x + s*.5*gi->width;
-
-	float y_top = y + s*.5*gi->height;
-	float y_bottom = y - s*.5*gi->height;
-
 	const vector2& t0 = gi->t0;
 	const vector2& t1 = gi->t1;
 	const vector2& t2 = gi->t2;
 	const vector2& t3 = gi->t3;
 
-	static gl_vertex_array_texuv_color gv(4);
+	const float t = static_cast<float>(tics)/TTL;
+	const float s = sin(t*M_PI);
 
+	enum { NUM_LAYERS = 8, };
+
+	static gl_vertex_array_texuv_color gv(4*NUM_LAYERS);
 	gv.reset();
 
-	gv.add_vertex(x_left, y_top, t0.x, t0.y , r, g, b, a);
-	gv.add_vertex(x_right, y_top, t1.x, t1.y, r, g, b, a);
-	gv.add_vertex(x_right, y_bottom, t2.x, t2.y, r, g, b, a);
-	gv.add_vertex(x_left, y_bottom, t3.x, t3.y, r, g, b, a);
+	for (int i = 0; i < NUM_LAYERS; i++) {
+		const float q = 1. - static_cast<float>(i)/NUM_LAYERS;
+		const int c = 255*q*q*(1. - t)*(1. - t);
+
+		const float f = 1 + .2*s*i;
+
+#define ADD_VERTEX(dx, dy, n) \
+		gv.add_vertex(x + dx*f*.5*gi->width, y + dy*f*.5*gi->height, t ## n.x, t ## n.y, c, c, c, 255);
+		ADD_VERTEX(-1, +1, 0)
+		ADD_VERTEX(+1, +1, 1)
+		ADD_VERTEX(+1, -1, 2)
+		ADD_VERTEX(-1, -1, 3)
+#undef ADD_VERTEX
+	}
 
 	f->texture.bind();
 	gv.draw(GL_QUADS);
@@ -281,7 +279,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
-	player.set_gain(.02);
+	player.set_gain(.1);
 	player.start();
 
 	spectrum.update(0);
@@ -611,7 +609,7 @@ in_game_state::draw_serifu(float alpha) const
 		const float base_x = 100;
 		const float base_y = 70;
 
-		const rgba color[2] = { rgba(1, 1, 0, alpha), rgba(1, 1, 1, alpha) };
+		const rgba color[2] = { rgba(0, 1, 1, alpha), rgba(1, 1, 1, alpha) };
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
