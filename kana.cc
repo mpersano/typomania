@@ -79,6 +79,7 @@ kana_to_pattern::kana_to_pattern()
 		{ L"った", "TTA" }, { L"っち", "TTI" }, { L"っつ", "TTU" }, { L"って", "TTE" }, { L"っと", "TTO" },
 		{ L"っさ", "SSA" }, { L"っし", "SSI" }, { L"っす", "SSU" }, { L"っせ", "SSE" }, { L"っそ", "SSO" },
 		{ L"っか", "KKA" }, { L"っき", "KKI" }, { L"っく", "KKU" }, { L"っけ", "KKE" }, { L"っこ", "KKO" },
+		{ L"っぱ", "PPA" }, { L"っぴ", "PPI" }, { L"っぷ", "PPU" }, { L"っぺ", "PPE" }, { L"っぽ", "PPO" },
 		{ 0, 0 }
 	};
 
