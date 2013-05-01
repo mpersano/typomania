@@ -241,6 +241,18 @@ serifu_kana_part::draw(int num_highlighted, const rgba color[2]) const
 	return draw_kana(kana_font, 0, 0, kana, num_highlighted, color);
 }
 
+vector2
+serifu_kana_part::get_kana_position(size_t index) const
+{
+	assert(index >= 0 && index < kana.size());
+
+	float x = 0;
+	for (size_t i = 0; i < index; i++)
+		x += kana_font->find_glyph(kana[i])->advance_x;
+
+	return vector2(x, 0);
+}
+
 serifu_furigana_part::serifu_furigana_part()
 : kanji_font(font_cache["data/fonts/small_font.fnt"])
 , furigana_font(font_cache["data/fonts/tiny_font.fnt"])
@@ -276,10 +288,24 @@ serifu_furigana_part::draw(int num_highlighted, const rgba color[2]) const
 	  furigana, num_highlighted, color);
 }
 
+vector2
+serifu_furigana_part::get_kana_position(size_t index) const
+{
+	assert(index >= 0 && index < furigana.size());
+
+	float x = .5*get_width() - .5*(furigana_font->get_string_width(&furigana[0], furigana.size()));
+
+	for (size_t i = 0; i < index; i++)
+		x += furigana_font->find_glyph(furigana[i])->advance_x;
+
+	return vector2(x, 26);
+}
+
 serifu_kana_iterator::serifu_kana_iterator(const serifu *s)
 : iter(s->begin())
 , end(s->end())
 , cur_part_index(0)
+, base_x(0)
 {
 	skip_non_kana();
 }
@@ -342,10 +368,23 @@ serifu_kana_iterator::next()
 {
 	if (iter != end) {
 		if (++cur_part_index == (*iter)->get_kana().size()) {
+			base_x += (*iter)->get_width();
 			++iter;
 			cur_part_index = 0;
 		}
 	}
+}
+
+const font *
+serifu_kana_iterator::get_font() const
+{
+	return (*iter)->get_kana_font();
+}
+
+vector2
+serifu_kana_iterator::get_position() const
+{
+	return vector2(base_x, 0) + (*iter)->get_kana_position(cur_part_index);
 }
 
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)

@@ -5,8 +5,6 @@
 #include "spectrum_bars.h"
 #include "game.h"
 
-struct font;
-
 class in_game_state : public game_state {
 public:
 	in_game_state(const kashi& cur_kashi);

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "rgba.h"
+#include "vector2.h"
 #include "utf8.h"
 
 struct font;
@@ -13,7 +14,12 @@ struct serifu_part {
 	virtual const wstring& get_kana() const = 0;
 
 	virtual int get_width() const = 0;
+
 	virtual int draw(int num_highlighted, const rgba color[2]) const = 0;
+
+	virtual const font *get_kana_font() const = 0;
+
+	virtual vector2 get_kana_position(size_t index) const = 0;
 
 	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const;
 };
@@ -28,6 +34,11 @@ struct serifu_kana_part : serifu_part {
 
 	int draw(int num_highlighted, const rgba color[2]) const;
 
+	const font *get_kana_font() const
+	{ return kana_font; }
+
+	vector2 get_kana_position(size_t index) const;
+
 	wstring kana;
 	font *kana_font;
 };
@@ -39,7 +50,13 @@ struct serifu_furigana_part : serifu_part {
 	{ return furigana; }
 
 	int get_width() const;
+
 	int draw(int num_highlighted, const rgba color[2]) const;
+
+	const font *get_kana_font() const
+	{ return furigana_font; }
+
+	vector2 get_kana_position(size_t index) const;
 
 	wstring kanji;
 	wstring furigana;
@@ -83,6 +100,9 @@ public:
 
 	serifu_kana_iterator& operator++();
 
+	const font *get_font() const;
+	vector2 get_position() const;
+
 private:
 	void next();
 	void skip_non_kana();
@@ -90,6 +110,7 @@ private:
 
 	serifu::const_iterator iter, end;
 	size_t cur_part_index;
+	float base_x;
 };
 
 struct pattern_node;

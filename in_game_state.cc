@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include <algorithm>
+#include <list>
 
 #include <SDL.h>
 #include <GL/gl.h>
@@ -23,12 +24,130 @@ enum {
 	RESULTS_START_TIC = 120,
 };
 
+class glyph_shadow {
+public:
+	glyph_shadow(const font *f, wchar_t ch, const vector2& p);
+
+	void update()
+	{ ++tics; }
+
+	bool is_active() const
+	{ return tics < TTL; }
+
+	void draw() const;
+
+private:
+	enum { TTL = 30 };
+
+	const font *f;
+	const font::glyph *gi;
+	float x, y;
+
+	int tics;
+};
+
+glyph_shadow::glyph_shadow(const font *f, wchar_t ch, const vector2& p)
+: f(f)
+, gi(f->find_glyph(ch))
+, x(p.x + gi->left + .5*gi->width)
+, y(p.y + gi->top - .5*gi->height)
+, tics(0)
+{ }
+
+void
+glyph_shadow::draw() const
+{
+	const float t = static_cast<float>(tics)/TTL;
+
+	const float q = (1. - t);
+	const int r = 255*q;
+	const int g = 255*q;
+	const int b = 255*q;
+	const int a = 255*q;
+
+	const float s = 1. + .5*sin(t*M_PI);
+
+	float x_left = x - s*.5*gi->width;
+	float x_right = x + s*.5*gi->width;
+
+	float y_top = y + s*.5*gi->height;
+	float y_bottom = y - s*.5*gi->height;
+
+	const vector2& t0 = gi->t0;
+	const vector2& t1 = gi->t1;
+	const vector2& t2 = gi->t2;
+	const vector2& t3 = gi->t3;
+
+	static gl_vertex_array_texuv_color gv(4);
+
+	gv.reset();
+
+	gv.add_vertex(x_left, y_top, t0.x, t0.y , r, g, b, a);
+	gv.add_vertex(x_right, y_top, t1.x, t1.y, r, g, b, a);
+	gv.add_vertex(x_right, y_bottom, t2.x, t2.y, r, g, b, a);
+	gv.add_vertex(x_left, y_bottom, t3.x, t3.y, r, g, b, a);
+
+	f->texture.bind();
+	gv.draw(GL_QUADS);
+}
+
+typedef std::list<glyph_shadow *> glyph_shadow_queue;
+static glyph_shadow_queue glyph_shadows;
+
+static void
+glyph_shadows_reset()
+{
+	for (glyph_shadow_queue::iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+		delete *i;
+
+	glyph_shadows.empty();
+}
+
+static void
+glyph_shadows_add(glyph_shadow *p)
+{
+	glyph_shadows.push_back(p);
+}
+
+static void
+glyph_shadows_draw()
+{
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
+
+	glEnable(GL_TEXTURE_2D);
+
+	for (glyph_shadow_queue::const_iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+		(*i)->draw();
+}
+
+static void
+glyph_shadows_update()
+{
+	for (glyph_shadow_queue::iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+		(*i)->update();
+
+	while (!glyph_shadows.empty()) {
+		glyph_shadow *p = glyph_shadows.front();
+
+		if (p->is_active())
+			break;
+
+		delete p;
+
+		glyph_shadows.pop_front();
+	}
+}
+
 class kana_buffer {
 public:
 	kana_buffer()
 	: cur_pattern(0)
 	, num_consumed(0)
+	, prev_glyph_shadow(0)
 	{ }
+
+	~kana_buffer();
 
 	void set_serifu(const serifu *s);
 
@@ -48,26 +167,48 @@ private:
 
 	const pattern_node *cur_pattern;
 	serifu_kana_iterator kana_iter;
+
 	int num_consumed;
+
+	glyph_shadow *prev_glyph_shadow;
 };
+
+kana_buffer::~kana_buffer()
+{
+	if (prev_glyph_shadow)
+		delete prev_glyph_shadow;
+}
 
 void
 kana_buffer::set_serifu(const serifu *s)
 {
 	kana_iter = serifu_kana_iterator(s);
+
 	num_consumed = 0;
+
+	if (prev_glyph_shadow) {
+		delete prev_glyph_shadow;
+		prev_glyph_shadow = 0;
+	}
+
 	consume_kana();
 }
 
 int
 kana_buffer::consume_kana()
 {
+	if (prev_glyph_shadow) {
+		glyph_shadows_add(prev_glyph_shadow);
+		prev_glyph_shadow = 0;
+	}
+
 	if (*kana_iter) {
 		if ((cur_pattern = kana_to_pattern::find_pair(kana_iter[0], kana_iter[1]))) {
 			++kana_iter;
 			++kana_iter;
 			return 2;
 		} else if ((cur_pattern = kana_to_pattern::find_single(*kana_iter))) {
+			prev_glyph_shadow = new glyph_shadow(kana_iter.get_font(), *kana_iter, kana_iter.get_position());
 			++kana_iter;
 			return 1;
 		}
@@ -127,6 +268,9 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , medium_font(font_cache["data/fonts/medium_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
+	glyph_shadows_reset();
+	//glyph_shadows_add(small_font, L'a', vector2(100, 100));
+
 	input_buffer.set_serifu(*cur_serifu);
 
 	std::ostringstream path;
@@ -175,6 +319,9 @@ void
 in_game_state::draw_hud(float alpha) const
 {
 #ifndef MUTE
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glColor4f(1, 1, 1, .1*alpha);
 	spectrum.draw();
 #endif
@@ -254,6 +401,8 @@ in_game_state::update()
 	player.update();
 	spectrum.update(total_ms);
 #endif
+
+	glyph_shadows_update();
 }
 
 void
@@ -471,9 +620,12 @@ in_game_state::draw_serifu(float alpha) const
 
 		glPushMatrix();
 		glTranslatef(base_x, base_y, 0);
-
 		serifu->draw(highlighted, color);
+		glPopMatrix();
 
+		glPushMatrix();
+		glTranslatef(base_x, base_y, 0);
+		glyph_shadows_draw();
 		glPopMatrix();
 	}
 }
@@ -549,6 +701,9 @@ in_game_state::draw_hud_counters(float alpha) const
 {
 	const float base_y = 140;
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glColor4f(1, 1, 1, alpha);
 
 	if (combo) {
@@ -571,6 +726,8 @@ in_game_state::get_correct_percent() const
 	if (total_strokes > 0) {
 		if (miss == 0) {
 			wcscpy(buf, L"100%");
+		} else if (miss == total_strokes) {
+			wcscpy(buf, L"0%");
 		} else {
 			const float f = 100.*static_cast<float>(total_strokes - miss)/total_strokes;
 			swprintf(buf, sizeof buf/sizeof *buf, L"%.1f%%", f);
@@ -610,6 +767,11 @@ in_game_state::get_class() const
 void
 in_game_state::draw_song_info() const
 {
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_TEXTURE_2D);
+
 	glColor4f(1, 1, 1, 1);
 
 	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
@@ -624,6 +786,9 @@ in_game_state::draw_results(int tic) const
 		LINE_FADE_IN_TIC = 20,
 		LINE_INTERVAL = 40,
 	};
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	const int digit_width = small_font->find_glyph(L'0')->advance_x;
 
