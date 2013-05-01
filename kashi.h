@@ -11,6 +11,8 @@
 struct font;
 struct glyph_fx;
 
+typedef std::vector<glyph_fx *> fx_cont;
+
 struct serifu_part {
 	virtual const wstring& get_kana() const = 0;
 
@@ -18,7 +20,7 @@ struct serifu_part {
 
 	virtual int draw(int num_highlighted, const rgba color[2]) const = 0;
 
-	virtual glyph_fx *get_kana_glyph_fx(size_t index, const vector2& offset) const = 0;
+	virtual void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const = 0;
 
 	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const;
 };
@@ -33,7 +35,7 @@ struct serifu_kana_part : serifu_part {
 
 	int draw(int num_highlighted, const rgba color[2]) const;
 
-	glyph_fx *get_kana_glyph_fx(size_t index, const vector2& offset) const;
+	void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const;
 
 	wstring kana;
 	font *kana_font;
@@ -49,7 +51,7 @@ struct serifu_furigana_part : serifu_part {
 
 	int draw(int num_highlighted, const rgba color[2]) const;
 
-	glyph_fx *get_kana_glyph_fx(size_t index, const vector2& offset) const;
+	void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const;
 
 	wstring kanji;
 	wstring furigana;
@@ -93,7 +95,7 @@ public:
 
 	serifu_kana_iterator& operator++();
 
-	glyph_fx *get_glyph_fx() const;
+	void get_glyph_fx(fx_cont& fx_list) const;
 
 private:
 	void next();

@@ -244,8 +244,8 @@ serifu_kana_part::draw(int num_highlighted, const rgba color[2]) const
 	return draw_kana(kana_font, 0, 0, kana, num_highlighted, color);
 }
 
-glyph_fx *
-serifu_kana_part::get_kana_glyph_fx(size_t index, const vector2& offset) const
+void
+serifu_kana_part::get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& fx_list) const
 {
 	assert(index >= 0 && index < kana.size());
 
@@ -253,7 +253,7 @@ serifu_kana_part::get_kana_glyph_fx(size_t index, const vector2& offset) const
 	for (size_t i = 0; i < index; i++)
 		x += kana_font->find_glyph(kana[i])->advance_x;
 
-	return new glyph_fx(kana_font, kana[index], vector2(x, 0) + offset);
+	fx_list.push_back(new glyph_fx(kana_font, kana[index], vector2(x, 0) + offset));
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -291,8 +291,8 @@ serifu_furigana_part::draw(int num_highlighted, const rgba color[2]) const
 	  furigana, num_highlighted, color);
 }
 
-glyph_fx *
-serifu_furigana_part::get_kana_glyph_fx(size_t index, const vector2& offset) const
+void
+serifu_furigana_part::get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& fx_list) const
 {
 	assert(index >= 0 && index < furigana.size());
 
@@ -301,7 +301,17 @@ serifu_furigana_part::get_kana_glyph_fx(size_t index, const vector2& offset) con
 	for (size_t i = 0; i < index; i++)
 		x += furigana_font->find_glyph(furigana[i])->advance_x;
 
-	return new glyph_fx(furigana_font, furigana[index], offset + vector2(x, 26));
+	fx_list.push_back(new glyph_fx(furigana_font, furigana[index], offset + vector2(x, 26)));
+
+	if (index == furigana.size() - 1) {
+		float x = .5*get_width() - .5*(kanji_font->get_string_width(&kanji[0], kanji.size()));
+
+		for (wstring::const_iterator i = kanji.begin(); i != kanji.end(); i++) {
+			const wchar_t ch = *i;
+			fx_list.push_back(new glyph_fx(kanji_font, ch, offset + vector2(x, 0)));
+			x += kanji_font->find_glyph(ch)->advance_x;
+		}
+	}
 }
 
 serifu_kana_iterator::serifu_kana_iterator(const serifu *s)
@@ -375,10 +385,10 @@ serifu_kana_iterator::next()
 	}
 }
 
-glyph_fx *
-serifu_kana_iterator::get_glyph_fx() const
+void
+serifu_kana_iterator::get_glyph_fx(fx_cont& fx_list) const
 {
-	return (*iter)->get_kana_glyph_fx(cur_part_index, vector2(base_x, 0));
+	return (*iter)->get_kana_glyph_fx(cur_part_index, vector2(base_x, 0), fx_list);
 }
 
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
