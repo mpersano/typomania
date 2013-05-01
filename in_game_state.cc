@@ -24,9 +24,9 @@ enum {
 	RESULTS_START_TIC = 120,
 };
 
-class glyph_shadow {
+class glyph_fx {
 public:
-	glyph_shadow(const font *f, wchar_t ch, const vector2& p);
+	glyph_fx(const font *f, wchar_t ch, const vector2& p);
 
 	void update()
 	{ ++tics; }
@@ -46,7 +46,7 @@ private:
 	int tics;
 };
 
-glyph_shadow::glyph_shadow(const font *f, wchar_t ch, const vector2& p)
+glyph_fx::glyph_fx(const font *f, wchar_t ch, const vector2& p)
 : f(f)
 , gi(f->find_glyph(ch))
 , x(p.x + gi->left + .5*gi->width)
@@ -55,7 +55,7 @@ glyph_shadow::glyph_shadow(const font *f, wchar_t ch, const vector2& p)
 { }
 
 void
-glyph_shadow::draw() const
+glyph_fx::draw() const
 {
 	const vector2& t0 = gi->t0;
 	const vector2& t1 = gi->t1;
@@ -89,51 +89,45 @@ glyph_shadow::draw() const
 	gv.draw(GL_QUADS);
 }
 
-typedef std::list<glyph_shadow *> glyph_shadow_queue;
-static glyph_shadow_queue glyph_shadows;
+typedef std::list<glyph_fx *> glyph_fx_queue;
+static glyph_fx_queue glyph_fxs;
 
 static void
-glyph_shadows_reset()
+glyph_fxs_reset()
 {
-	for (glyph_shadow_queue::iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+	for (glyph_fx_queue::iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
 		delete *i;
 
-	glyph_shadows.empty();
+	glyph_fxs.empty();
 }
 
 static void
-glyph_shadows_add(glyph_shadow *p)
-{
-	glyph_shadows.push_back(p);
-}
-
-static void
-glyph_shadows_draw()
+glyph_fxs_draw()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
 
 	glEnable(GL_TEXTURE_2D);
 
-	for (glyph_shadow_queue::const_iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+	for (glyph_fx_queue::const_iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
 		(*i)->draw();
 }
 
 static void
-glyph_shadows_update()
+glyph_fxs_update()
 {
-	for (glyph_shadow_queue::iterator i = glyph_shadows.begin(); i != glyph_shadows.end(); i++)
+	for (glyph_fx_queue::iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
 		(*i)->update();
 
-	while (!glyph_shadows.empty()) {
-		glyph_shadow *p = glyph_shadows.front();
+	while (!glyph_fxs.empty()) {
+		glyph_fx *p = glyph_fxs.front();
 
 		if (p->is_active())
 			break;
 
 		delete p;
 
-		glyph_shadows.pop_front();
+		glyph_fxs.pop_front();
 	}
 }
 
@@ -142,7 +136,6 @@ public:
 	kana_buffer()
 	: cur_pattern(0)
 	, num_consumed(0)
-	, prev_glyph_shadow(0)
 	{ }
 
 	~kana_buffer();
@@ -155,59 +148,59 @@ public:
 	{ return !cur_pattern; }
 
 	int get_num_consumed() const
-	{ return num_consumed; }
+	{ return prev_num_consumed; }
 
 	serifu_romaji_iterator get_romaji_iterator() const
 	{ return serifu_romaji_iterator(cur_pattern, kana_iter); }
 
 private:
 	int consume_kana();
+	void clear_prev_fx();
 
 	const pattern_node *cur_pattern;
 	serifu_kana_iterator kana_iter;
 
-	int num_consumed;
+	int num_consumed, prev_num_consumed;
 
-	glyph_shadow *prev_glyph_shadow;
+	typedef std::vector<glyph_fx *> fx_cont;
+	fx_cont prev_fx;
 };
 
 kana_buffer::~kana_buffer()
 {
-	if (prev_glyph_shadow)
-		delete prev_glyph_shadow;
+	clear_prev_fx();
 }
 
 void
 kana_buffer::set_serifu(const serifu *s)
 {
+	clear_prev_fx();
+
 	kana_iter = serifu_kana_iterator(s);
 
-	num_consumed = 0;
-
-	if (prev_glyph_shadow) {
-		delete prev_glyph_shadow;
-		prev_glyph_shadow = 0;
-	}
-
-	consume_kana();
+	prev_num_consumed = 0;
+	num_consumed = consume_kana();
 }
 
 int
 kana_buffer::consume_kana()
 {
-	if (prev_glyph_shadow) {
-		glyph_shadows_add(prev_glyph_shadow);
-		prev_glyph_shadow = 0;
-	}
+	glyph_fxs.insert(glyph_fxs.end(), prev_fx.begin(), prev_fx.end());
+	prev_fx.clear();
 
 	if (*kana_iter) {
 		if ((cur_pattern = kana_to_pattern::find_pair(kana_iter[0], kana_iter[1]))) {
+			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
 			++kana_iter;
+
+			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
 			++kana_iter;
+
 			return 2;
 		} else if ((cur_pattern = kana_to_pattern::find_single(*kana_iter))) {
-			prev_glyph_shadow = new glyph_shadow(kana_iter.get_font(), *kana_iter, kana_iter.get_position());
+			prev_fx.push_back(new glyph_fx(kana_iter.get_font(), *kana_iter, kana_iter.get_position()));
 			++kana_iter;
+
 			return 1;
 		}
 	}
@@ -237,10 +230,20 @@ kana_buffer::on_key_down(int keysym)
 		}
 	}
 
-	if (!(cur_pattern = cur_pattern->next))
+	if (!(cur_pattern = cur_pattern->next)) {
+		prev_num_consumed = num_consumed;
 		num_consumed += consume_kana();
+	}
 
 	return true;
+}
+
+void
+kana_buffer::clear_prev_fx()
+{
+	for (fx_cont::iterator i = prev_fx.begin(); i != prev_fx.end(); i++)
+		delete *i;
+	prev_fx.clear();
 }
 
 static kana_buffer input_buffer;
@@ -266,8 +269,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , medium_font(font_cache["data/fonts/medium_font.fnt"])
 , big_az_font(font_cache["data/fonts/big_az_font.fnt"])
 {
-	glyph_shadows_reset();
-	//glyph_shadows_add(small_font, L'a', vector2(100, 100));
+	glyph_fxs_reset();
 
 	input_buffer.set_serifu(*cur_serifu);
 
@@ -400,7 +402,7 @@ in_game_state::update()
 	spectrum.update(total_ms);
 #endif
 
-	glyph_shadows_update();
+	glyph_fxs_update();
 }
 
 void
@@ -624,7 +626,7 @@ in_game_state::draw_serifu(float alpha) const
 
 	glPushMatrix();
 	glTranslatef(base_x, base_y, 0);
-	glyph_shadows_draw();
+	glyph_fxs_draw();
 	glPopMatrix();
 }
 
