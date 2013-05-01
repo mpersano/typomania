@@ -605,10 +605,10 @@ in_game_state::draw_serifu(float alpha) const
 		}
 	}
 
-	if (serifu) {
-		const float base_x = 100;
-		const float base_y = 70;
+	const float base_x = 100;
+	const float base_y = 70;
 
+	if (serifu) {
 		const rgba color[2] = { rgba(0, 1, 1, alpha), rgba(1, 1, 1, alpha) };
 
 		glEnable(GL_BLEND);
@@ -620,12 +620,12 @@ in_game_state::draw_serifu(float alpha) const
 		glTranslatef(base_x, base_y, 0);
 		serifu->draw(highlighted, color);
 		glPopMatrix();
-
-		glPushMatrix();
-		glTranslatef(base_x, base_y, 0);
-		glyph_shadows_draw();
-		glPopMatrix();
 	}
+
+	glPushMatrix();
+	glTranslatef(base_x, base_y, 0);
+	glyph_shadows_draw();
+	glPopMatrix();
 }
 
 void
