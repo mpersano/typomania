@@ -148,9 +148,11 @@ release()
 }
 
 int
-main()
+main(int argc, char *argv[])
 {
 	init();
 	event_loop();
 	release();
+
+	return 0;
 }

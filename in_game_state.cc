@@ -15,6 +15,10 @@
 #include "glyph_fx.h"
 #include "in_game_state.h"
 
+#ifdef WIN32
+#define swprintf _snwprintf
+#endif 
+
 static const char *STREAM_DIR = "data/streams";
 
 enum {
@@ -367,8 +371,8 @@ in_game_state::on_key_down(int keysym)
 			}
 		}
 	} else if (cur_state == OUTRO) {
-		// XXX
-		the_game->start_song_menu();
+		if (keysym == SDLK_ESCAPE || keysym == SDLK_SPACE)
+			the_game->start_song_menu();
 	}
 }
 

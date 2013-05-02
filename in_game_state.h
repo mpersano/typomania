@@ -57,7 +57,7 @@ private:
 	unsigned start_ms, start_serifu_ms;
 	unsigned total_ms, serifu_ms;
 
-	int song_duration, cur_serifu_duration; // in ms
+	unsigned song_duration, cur_serifu_duration; // in ms
 
 	int score, display_score;
 	int combo;
