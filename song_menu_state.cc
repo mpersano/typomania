@@ -205,24 +205,24 @@ song_menu_state::redraw() const
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-#if 0
-	float pos = -cur_selection;
+#if 1
+	int from = std::max<int>(cur_displayed_position - 1.5, 0);
+	int to = std::min<int>(cur_displayed_position + 2.5, item_list.size() - 1);
 
-	if (cur_state == STATE_MOVING_UP || cur_state == STATE_MOVING_DOWN) {
-		const float f = static_cast<float>(state_tics)/move_tics;
-		const float offs = 1. - powf(1. - f, 3);
-		const float dir = cur_state == STATE_MOVING_UP ? 1 : -1;
+	float pos = -cur_displayed_position + from;
 
-		pos += offs*dir;
+	for (int i = from; i <= to; i++) {
+		item_list[i]->render(pos);
+		++pos;
 	}
 #else
 	float pos = -cur_displayed_position;
-#endif
-
+	 
 	for (item_cont::const_iterator i = item_list.begin(); i != item_list.end(); i++) {
 		(*i)->render(pos);
 		++pos;
 	}
+#endif
 
 	if (cur_state == STATE_IDLE) {
 		const float f = static_cast<float>(state_tics % ARROW_ANIMATION_TICS)/ARROW_ANIMATION_TICS;
