@@ -98,7 +98,7 @@ kashi::init_level()
 	for (serifu_cont::const_iterator i = serifu_list.begin(); i != serifu_list.end(); i++) {
 		int kana_count = 0;
 
-		for (serifu_kana_iterator j(*i); *j; ++j)
+		for (serifu_romaji_iterator j(*i); *j; ++j)
 			++kana_count;
 
 		float kana_per_ms = static_cast<float>(kana_count)/(*i)->duration;
@@ -107,7 +107,7 @@ kashi::init_level()
 			top_kana_per_ms = kana_per_ms;
 	}
 
-	level = static_cast<int>(top_kana_per_ms*5000.);
+	level = static_cast<int>(top_kana_per_ms*9000.);
 
 	if (level >= 100)
 		level = 99;
