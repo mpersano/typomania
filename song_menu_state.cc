@@ -5,6 +5,7 @@
 #include "rgba.h"
 #include "kashi.h"
 #include "gl_vertex_array.h"
+#include "in_game_state.h"
 #include "song_menu_state.h"
 
 enum {
@@ -322,7 +323,7 @@ song_menu_state::on_key_down(int keysym)
 
 		case SDLK_RETURN:
 			if (cur_state == STATE_IDLE)
-				the_game->start_in_game(*item_list[cur_selection]->song);
+				the_game->push_state(new in_game_state(*item_list[cur_selection]->song));
 			break;
 
 		default:

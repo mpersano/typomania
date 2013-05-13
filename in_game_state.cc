@@ -372,7 +372,7 @@ in_game_state::on_key_down(int keysym)
 		}
 	} else if (cur_state == OUTRO) {
 		if (keysym == SDLK_ESCAPE || keysym == SDLK_SPACE)
-			the_game->start_song_menu();
+			the_game->pop_state();
 	}
 }
 

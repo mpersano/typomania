@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <stack>
 
 #include "kashi.h"
 
@@ -26,13 +27,16 @@ public:
 	void on_key_up(int keysym);
 	void on_key_down(int keysym);
 
-	void start_in_game(const kashi& cur_kashi);
-	void start_song_menu();
+	void push_state(game_state *new_state);
+	void pop_state();
 
 private:
 	void load_song_list();
 
-	std::auto_ptr<game_state> cur_state;
+	game_state *cur_state();
+	const game_state *cur_state() const;
+
+	std::stack<game_state *> state_stack;
 
 	typedef std::vector<kashi *> kashi_cont;
 	kashi_cont kashi_list;

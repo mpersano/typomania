@@ -9,7 +9,6 @@
 #include <dirent.h>
 
 #include "panic.h"
-#include "in_game_state.h"
 #include "song_menu_state.h"
 #include "game.h"
 
@@ -29,7 +28,7 @@ game::game()
 	if (kashi_list.empty())
 		panic("no songs loaded?");
 
-	start_song_menu();
+	push_state(new song_menu_state(kashi_list));
 }
 
 game::~game()
@@ -38,28 +37,40 @@ game::~game()
 		delete *i;
 }
 
+game_state *
+game::cur_state()
+{
+	return state_stack.top();
+}
+
+const game_state *
+game::cur_state() const
+{
+	return state_stack.top();
+}
+
 void
 game::redraw() const
 {
-	cur_state->redraw();
+	cur_state()->redraw();
 }
 
 void
 game::update()
 {
-	cur_state->update();
+	cur_state()->update();
 }
 
 void
 game::on_key_down(int keysym)
 {
-	cur_state->on_key_down(keysym);
+	cur_state()->on_key_down(keysym);
 }
 
 void
 game::on_key_up(int keysym)
 {
-	cur_state->on_key_up(keysym);
+	cur_state()->on_key_up(keysym);
 }
 
 void
@@ -97,13 +108,14 @@ game::load_song_list()
 }
 
 void
-game::start_in_game(const kashi& cur_kashi)
+game::push_state(game_state *new_state)
 {
-	cur_state.reset(new in_game_state(cur_kashi));
+	state_stack.push(new_state);
 }
 
 void
-game::start_song_menu()
+game::pop_state()
 {
-	cur_state.reset(new song_menu_state(kashi_list));
+	delete state_stack.top();
+	state_stack.pop();
 }
