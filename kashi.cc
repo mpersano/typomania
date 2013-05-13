@@ -107,7 +107,7 @@ kashi::init_level()
 			top_kana_per_ms = kana_per_ms;
 	}
 
-	level = static_cast<int>(top_kana_per_ms*9000.);
+	level = static_cast<int>(top_kana_per_ms*11000.);
 
 	if (level >= 100)
 		level = 99;
