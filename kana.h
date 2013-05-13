@@ -11,11 +11,7 @@ public:
 	static pattern_node *find_single(const wchar_t kana);
 
 private:
-	static kana_to_pattern& get_instance()
-	{
-		static kana_to_pattern instance;
-		return instance;
-	}
+	static kana_to_pattern& get_instance();
 
 	kana_to_pattern();
 	~kana_to_pattern();

@@ -98,6 +98,13 @@ kana_to_pattern::~kana_to_pattern()
 		delete i->second;
 }
 
+kana_to_pattern&
+kana_to_pattern::get_instance()
+{
+	static kana_to_pattern instance;
+	return instance;
+}
+
 pattern_node *
 kana_to_pattern::find_single(const wchar_t kana)
 {
