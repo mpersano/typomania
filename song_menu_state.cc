@@ -207,8 +207,8 @@ song_menu_state::redraw() const
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #if 1
-	int from = std::max<int>(cur_displayed_position - 1.5, 0);
-	int to = std::min<int>(cur_displayed_position + 2.5, item_list.size() - 1);
+	int from = std::max<int>(cur_displayed_position - /* 1.5 */ 2, 0);
+	int to = std::min<int>(cur_displayed_position + /* 2.5 */ 3, item_list.size() - 1);
 
 	float pos = -cur_displayed_position + from;
 
