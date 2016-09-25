@@ -25,3 +25,4 @@ for (<DATA>) {
 __DATA__
 aquarion	https://www.youtube.com/watch?v=ASquVYXBD7Q
 shounenheart	https://www.youtube.com/watch?v=3jGlD-0sPvc
+thankyou	https://www.youtube.com/watch?v=iuJ8xRYDTOA
