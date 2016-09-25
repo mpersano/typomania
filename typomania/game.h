@@ -45,6 +45,6 @@ private:
 	game& operator=(const game&);
 };
 
-typedef std::auto_ptr<game> game_ptr;
+typedef std::unique_ptr<game> game_ptr;
 
 #endif // GAME_H_
