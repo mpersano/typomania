@@ -40,26 +40,26 @@ kana_to_pattern::kana_to_pattern()
 	};
 
 	for (const kana_to_romaji *p = kana_to_romaji_table; p->kana; p++) {
-		kana_to_pattern_map[p->kana] = parse_pattern(p->romaji);
-		kana_to_pattern_map[hira_to_kata(p->kana)] = parse_pattern(p->romaji);
+		kana_to_pattern_map[p->kana] = pattern_node_ptr(parse_pattern(p->romaji));
+		kana_to_pattern_map[hira_to_kata(p->kana)] = pattern_node_ptr(parse_pattern(p->romaji));
 	}
 
-	for (int i = 'A'; i <= 'Z'; i++) {
+	for (char i = 'A'; i <= 'Z'; i++) {
 		char pattern[2] = { i, '\0' };
-		kana_to_pattern_map[i] = parse_pattern(pattern);
-		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
+		kana_to_pattern_map[i] = pattern_node_ptr(parse_pattern(pattern));
+		kana_to_pattern_map[half_to_full(i)] = pattern_node_ptr(parse_pattern(pattern));
 	}
 
-	for (int i = 'a'; i <= 'z'; i++) {
-		char pattern[2] = { i - 'a' + 'A', '\0' };
-		kana_to_pattern_map[i] = parse_pattern(pattern);
-		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
+	for (char i = 'a'; i <= 'z'; i++) {
+		char pattern[2] = { static_cast<char>(i - 'a' + 'A'), '\0' };
+		kana_to_pattern_map[i] = pattern_node_ptr(parse_pattern(pattern));
+		kana_to_pattern_map[half_to_full(i)] = pattern_node_ptr(parse_pattern(pattern));
 	}
 
-	for (int i = '0'; i <= '9'; i++) {
+	for (char i = '0'; i <= '9'; i++) {
 		char pattern[2] = { i, '\0' };
-		kana_to_pattern_map[i] = parse_pattern(pattern);
-		kana_to_pattern_map[half_to_full(i)] = parse_pattern(pattern);
+		kana_to_pattern_map[i] = pattern_node_ptr(parse_pattern(pattern));
+		kana_to_pattern_map[half_to_full(i)] = pattern_node_ptr(parse_pattern(pattern));
 	}
 
 	static const struct kana_pair_to_romaji {
@@ -85,18 +85,9 @@ kana_to_pattern::kana_to_pattern()
 	};
 
 	for (const kana_pair_to_romaji *p = kana_pair_to_romaji_table; p->kana; p++) {
-		kana_pair_to_pattern_map[std::make_pair(p->kana[0], p->kana[1])] = parse_pattern(p->romaji);
-		kana_pair_to_pattern_map[std::make_pair(hira_to_kata(p->kana[0]), hira_to_kata(p->kana[1]))] = parse_pattern(p->romaji);
+		kana_pair_to_pattern_map[std::make_pair(p->kana[0], p->kana[1])] = pattern_node_ptr(parse_pattern(p->romaji));
+		kana_pair_to_pattern_map[std::make_pair(hira_to_kata(p->kana[0]), hira_to_kata(p->kana[1]))] = pattern_node_ptr(parse_pattern(p->romaji));
 	}
-}
-
-kana_to_pattern::~kana_to_pattern()
-{
-	for (kana_map::iterator i = kana_to_pattern_map.begin(); i != kana_to_pattern_map.end(); i++)
-		delete i->second;
-
-	for (kana_pair_map::iterator i = kana_pair_to_pattern_map.begin(); i != kana_pair_to_pattern_map.end(); i++)
-		delete i->second;
 }
 
 kana_to_pattern&
@@ -106,18 +97,18 @@ kana_to_pattern::get_instance()
 	return instance;
 }
 
-pattern_node *
+const pattern_node *
 kana_to_pattern::find_single(const wchar_t kana)
 {
 	kana_to_pattern& instance = get_instance();
-	kana_map::iterator i = instance.kana_to_pattern_map.find(kana);
-	return i != instance.kana_to_pattern_map.end() ? i->second : 0;
+	auto i = instance.kana_to_pattern_map.find(kana);
+	return i != instance.kana_to_pattern_map.end() ? i->second.get() : nullptr;
 }
 
-pattern_node *
+const pattern_node *
 kana_to_pattern::find_pair(wchar_t first, wchar_t second)
 {
 	kana_to_pattern& instance = get_instance();
-	kana_pair_map::iterator i = instance.kana_pair_to_pattern_map.find(std::pair<wchar_t, wchar_t>(first, second));
-	return i != instance.kana_pair_to_pattern_map.end() ? i->second : 0;
+	auto i = instance.kana_pair_to_pattern_map.find(std::make_pair(first, second));
+	return i != instance.kana_pair_to_pattern_map.end() ? i->second.get() : nullptr;
 }

@@ -3,7 +3,7 @@
 pattern_node *
 parse_pattern(const char *pattern_str)
 {
-	pattern_node *head = 0, **node_ptr = &head;
+	pattern_node *head = nullptr, **node_ptr = &head;
 
 	while (*pattern_str) {
 		pattern_node *node;

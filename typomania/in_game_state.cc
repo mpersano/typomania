@@ -17,7 +17,7 @@
 
 #ifdef WIN32
 #define swprintf _snwprintf
-#endif 
+#endif
 
 static const char *STREAM_DIR = "data/streams";
 
@@ -29,15 +29,12 @@ enum {
 	RESULTS_START_TIC = 120,
 };
 
-typedef std::list<glyph_fx *> glyph_fx_queue;
+using glyph_fx_queue = std::list<std::unique_ptr<glyph_fx>>;
 static glyph_fx_queue glyph_fxs;
 
 static void
 glyph_fxs_reset()
 {
-	for (glyph_fx_queue::iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
-		delete *i;
-
 	glyph_fxs.empty();
 }
 
@@ -49,32 +46,31 @@ glyph_fxs_draw()
 
 	glEnable(GL_TEXTURE_2D);
 
-	for (glyph_fx_queue::const_iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
-		(*i)->draw();
+	for (auto& p : glyph_fxs)
+		p->draw();
 }
 
 static void
 glyph_fxs_update()
 {
-	for (glyph_fx_queue::iterator i = glyph_fxs.begin(); i != glyph_fxs.end(); i++)
-		(*i)->update();
+	for (auto& p : glyph_fxs)
+		p->update();
 
 	while (!glyph_fxs.empty()) {
-		glyph_fx *p = glyph_fxs.front();
+		auto& p = glyph_fxs.front();
 
 		if (p->is_active())
 			break;
-
-		delete p;
 
 		glyph_fxs.pop_front();
 	}
 }
 
-class kana_buffer {
+class kana_buffer
+{
 public:
 	kana_buffer()
-	: cur_pattern(0)
+	: cur_pattern(nullptr)
 	, num_consumed(0)
 	{ }
 
@@ -102,7 +98,7 @@ private:
 
 	int num_consumed, prev_num_consumed;
 
-	typedef std::vector<glyph_fx *> fx_cont;
+	using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
 	fx_cont prev_fx;
 };
 
@@ -127,7 +123,8 @@ kana_buffer::set_serifu(const serifu *s)
 int
 kana_buffer::consume_kana()
 {
-	glyph_fxs.insert(glyph_fxs.end(), prev_fx.begin(), prev_fx.end());
+	for (auto& p : prev_fx)
+		glyph_fxs.push_back(std::move(p));
 	prev_fx.clear();
 
 	if (*kana_iter) {
@@ -183,8 +180,6 @@ kana_buffer::on_key_down(int keysym)
 void
 kana_buffer::clear_prev_fx()
 {
-	for (fx_cont::iterator i = prev_fx.begin(); i != prev_fx.end(); i++)
-		delete *i;
 	prev_fx.clear();
 }
 
@@ -227,7 +222,7 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 	spectrum.update(0);
 #endif
 
-	set_cur_serifu(*cur_serifu, cur_serifu + 1 == cur_kashi.end());
+	set_cur_serifu(cur_serifu->get(), cur_serifu + 1 == cur_kashi.end());
 
 	start_ms = start_serifu_ms = SDL_GetTicks();
 }
@@ -289,7 +284,7 @@ in_game_state::update()
 				++n;
 
 			for (++cur_serifu; cur_serifu != cur_kashi.end(); ++cur_serifu) {
-				for (serifu_romaji_iterator iter(*cur_serifu); *iter; ++iter)
+				for (serifu_romaji_iterator iter(cur_serifu->get()); *iter; ++iter)
 					++n;
 			}
 
@@ -326,7 +321,7 @@ in_game_state::update()
 				if (++cur_serifu == cur_kashi.end()) {
 					set_state(OUTRO);
 				} else {
-					set_cur_serifu(*cur_serifu, cur_serifu + 1 == cur_kashi.end());
+					set_cur_serifu(cur_serifu->get(), cur_serifu + 1 == cur_kashi.end());
 				}
 			}
 		}
@@ -530,17 +525,17 @@ in_game_state::draw_serifu(float alpha) const
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	const serifu *serifu = 0;
+	const serifu *serifu = nullptr;
 	int highlighted;
 
 	if (!input_buffer.finished()) {
-		serifu = *cur_serifu;
+		serifu = cur_serifu->get();
 		highlighted = input_buffer.get_num_consumed();
 	} else {
 		kashi::const_iterator next_serifu = cur_serifu + 1;
 
 		if (next_serifu != cur_kashi.end()) {
-			serifu = *next_serifu;
+			serifu = next_serifu->get();
 			alpha *= .5;
 			highlighted = 0;
 		}
@@ -786,7 +781,7 @@ in_game_state::set_state(state next_state)
 void
 in_game_state::set_cur_serifu(const serifu *s, bool is_last)
 {
-	input_buffer.set_serifu(*cur_serifu);
+	input_buffer.set_serifu(cur_serifu->get());
 
 	cur_serifu_duration = (*cur_serifu)->duration;
 #ifndef MUTE

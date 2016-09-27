@@ -1,5 +1,4 @@
-#ifndef SONG_MENU_STATE_H_
-#define SONG_MENU_STATE_H_
+#pragma once
 
 #include "game.h"
 
@@ -7,11 +6,12 @@ class kashi;
 class menu_item;
 class gl_texture;
 
-class song_menu_state : public game_state {
-public:
-	typedef std::vector<kashi *> kashi_cont;
+using menu_item_ptr = std::unique_ptr<menu_item>;
 
-	song_menu_state(const kashi_cont& kashi_list);
+class song_menu_state : public game_state
+{
+public:
+	song_menu_state(const std::vector<kashi_ptr>& kashi_list);
 	~song_menu_state();
 
 	void redraw() const;
@@ -22,7 +22,7 @@ public:
 private:
 	void draw_background() const;
 
-	typedef std::vector<menu_item *> item_cont;
+	using item_cont = std::vector<menu_item_ptr>;
 	item_cont item_list;
 
 	enum state {
@@ -44,5 +44,3 @@ private:
 	gl_texture *arrow_texture;
 	gl_texture *bg_texture;
 };
-
-#endif // SONG_SELECTION_STATE_H_

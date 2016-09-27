@@ -1,5 +1,4 @@
-#ifndef GAME_H_
-#define GAME_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -7,7 +6,8 @@
 
 #include "kashi.h"
 
-class game_state {
+class game_state
+{
 public:
 	virtual ~game_state() { }
 
@@ -20,7 +20,6 @@ public:
 class game {
 public:
 	game();
-	~game();
 
 	void redraw() const;
 	void update();
@@ -36,15 +35,12 @@ private:
 	game_state *cur_state();
 	const game_state *cur_state() const;
 
-	std::stack<game_state *> state_stack;
+	std::stack<std::unique_ptr<game_state>> state_stack;
 
-	typedef std::vector<kashi *> kashi_cont;
-	kashi_cont kashi_list;
+	std::vector<kashi_ptr> kashi_list;
 
 	game(const game&);
 	game& operator=(const game&);
 };
 
 typedef std::unique_ptr<game> game_ptr;
-
-#endif // GAME_H_

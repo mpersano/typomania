@@ -1,10 +1,10 @@
-#ifndef PATTERN_H_
-#define PATTERN_H_
+#pragma once
 
 #include <vector>
 #include <algorithm>
 
-struct pattern_node {
+struct pattern_node
+{
 	pattern_node() : is_optional(false), next(0) { }
 	virtual ~pattern_node() { if (next) delete next; }
 
@@ -15,7 +15,8 @@ struct pattern_node {
 	pattern_node *next;
 };
 
-struct single_char_node : pattern_node {
+struct single_char_node : pattern_node
+{
 	single_char_node(int ch) : ch(ch) { }
 
 	bool match(int keysym) const
@@ -27,7 +28,8 @@ struct single_char_node : pattern_node {
 	int ch;
 };
 
-struct multi_char_node : pattern_node {
+struct multi_char_node : pattern_node
+{
 	bool match(int keysym) const
 	{ return std::find(char_list.begin(), char_list.end(), keysym) != char_list.end(); }
 
@@ -39,5 +41,3 @@ struct multi_char_node : pattern_node {
 
 pattern_node *
 parse_pattern(const char *pattern_str);
-
-#endif // PATTERN_H_

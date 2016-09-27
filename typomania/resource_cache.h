@@ -1,42 +1,35 @@
-#ifndef RESOURCE_CACHE_H_
-#define RESOURCE_CACHE_H_
+#pragma unique
 
 #include <cstdio>
 
 #include <string>
-#include <map>
+#include <memory>
+#include <unordered_map>
 
 #include "panic.h"
 
 template <typename T>
-class resource_cache {
+class resource_cache
+{
 public:
-	~resource_cache()
-	{
-		for (typename std::map<std::string, T *>::iterator i = resource_map.begin(); i != resource_map.end(); i++)
-			delete i->second;
-	}
-
 	T *operator[](const std::string& path)
 	{
-		typename std::map<std::string, T *>::iterator i = resource_map.find(path);
+		auto it = resource_map.find(path);
 
-		if (i == resource_map.end()) {
-			T *resource = new T;
+		if (it == resource_map.end()) {
+			std::unique_ptr<T> resource(new T);
 
 			fprintf(stderr, "loading %s...\n", path.c_str());
 
 			if (!resource->load(path))
 				panic("failed to load %s", path.c_str());
 
-			i = resource_map.insert(std::pair<std::string, T *>(path, resource)).first;
+			it = resource_map.insert(std::make_pair(path, std::move(resource))).first;
 		}
 
-		return i->second;
+		return it->second.get();
 	}
 
 private:
-	std::map<std::string, T *> resource_map;
+	std::unordered_map<std::string, std::unique_ptr<T>> resource_map;
 };
-
-#endif // RESOURCE_CACHE_H_

@@ -15,12 +15,6 @@
 static const char *KASHI_DIR = "data/lyrics";
 static const char *KASHI_EXT = ".kashi";
 
-static bool
-kashi_compare(const kashi *a, const kashi *b)
-{
-	return a->level < b->level;
-}
-
 game::game()
 {
 	load_song_list();
@@ -31,22 +25,16 @@ game::game()
 	push_state(new song_menu_state(kashi_list));
 }
 
-game::~game()
-{
-	for (kashi_cont::iterator i = kashi_list.begin(); i != kashi_list.end(); ++i)
-		delete *i;
-}
-
 game_state *
 game::cur_state()
 {
-	return state_stack.top();
+	return state_stack.top().get();
 }
 
 const game_state *
 game::cur_state() const
 {
-	return state_stack.top();
+	return state_stack.top().get();
 }
 
 void
@@ -93,29 +81,30 @@ game::load_song_list()
 
 			fprintf(stderr, "loading %s\n", path.str().c_str());
 
-			kashi *p = new kashi;
+			kashi_ptr p(new kashi);
 
 			if (p->load(path.str().c_str()))
-				kashi_list.push_back(p);
-			else
-				delete p;
+				kashi_list.push_back(std::move(p));
 		}
 	}
 
 	closedir(dir);
 
-	std::sort(kashi_list.begin(), kashi_list.end(), kashi_compare);
+	std::sort(kashi_list.begin(), kashi_list.end(),
+			[](const kashi_ptr& a, const kashi_ptr& b)
+			{
+				return a->level < b->level;
+			});
 }
 
 void
 game::push_state(game_state *new_state)
 {
-	state_stack.push(new_state);
+	state_stack.push(std::unique_ptr<game_state>(new_state));
 }
 
 void
 game::pop_state()
 {
-	delete state_stack.top();
 	state_stack.pop();
 }

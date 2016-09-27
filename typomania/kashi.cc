@@ -40,8 +40,6 @@ kashi::kashi()
 
 kashi::~kashi()
 {
-	for (iterator i = serifu_list.begin(); i != serifu_list.end(); i++)
-		delete *i;
 }
 
 bool
@@ -78,9 +76,9 @@ kashi::load(const char *path)
 			return false;
 		}
 
-		serifu *p = new serifu(atoi(tokens[0]));
+		serifu_ptr p(new serifu(atoi(tokens[0])));
 		p->parse(utf8_to_wchar(tokens[1]));
-		serifu_list.push_back(p);
+		serifu_list.push_back(std::move(p));
 	}
 
 	fclose(in);
@@ -95,13 +93,13 @@ kashi::init_level()
 {
 	float top_kana_per_ms = 0;
 
-	for (serifu_cont::const_iterator i = serifu_list.begin(); i != serifu_list.end(); i++) {
+	for (auto& serifu : serifu_list) {
 		int kana_count = 0;
 
-		for (serifu_romaji_iterator j(*i); *j; ++j)
+		for (serifu_romaji_iterator j(serifu.get()); *j; ++j)
 			++kana_count;
 
-		float kana_per_ms = static_cast<float>(kana_count)/(*i)->duration;
+		float kana_per_ms = static_cast<float>(kana_count)/serifu->duration;
 
 		if (kana_per_ms > top_kana_per_ms)
 			top_kana_per_ms = kana_per_ms;
@@ -115,8 +113,6 @@ kashi::init_level()
 
 serifu::~serifu()
 {
-	for (iterator i = section_list.begin(); i != section_list.end(); i++)
-		delete *i;
 }
 
 bool
@@ -130,7 +126,7 @@ serifu::parse(const wstring& text)
 	};
 	state cur_state = NONE;
 
-	serifu_part *cur_part = 0;
+	serifu_part_ptr cur_part;
 
 	for (const wchar_t *p = &text[0]; *p; p++) {
 		wchar_t ch = *p;
@@ -139,9 +135,9 @@ serifu::parse(const wstring& text)
 			if (cur_state == KANJI || cur_state == FURIGANA)
 				return false;
 			else if (cur_state == KANA)
-				section_list.push_back(cur_part);
+				section_list.push_back(std::move(cur_part));
 
-			cur_part = new serifu_furigana_part;
+			cur_part.reset(new serifu_furigana_part);
 			cur_state = KANJI;
 		} else if (ch == '|') {
 			if (cur_state != KANJI)
@@ -152,32 +148,32 @@ serifu::parse(const wstring& text)
 			if (cur_state != FURIGANA)
 				return false;
 
-			section_list.push_back(cur_part);
+			section_list.push_back(std::move(cur_part));
 			cur_state = NONE;
 		} else {
 			switch (cur_state) {
 				case NONE:
-					cur_part = new serifu_kana_part;
+					cur_part.reset(new serifu_kana_part);
 					cur_state = KANA;
 					// FALLTHROUGH
 
 				case KANA:
-					dynamic_cast<serifu_kana_part *>(cur_part)->kana.push_back(ch);
+					dynamic_cast<serifu_kana_part *>(cur_part.get())->kana.push_back(ch);
 					break;
 
 				case KANJI:
-					dynamic_cast<serifu_furigana_part *>(cur_part)->kanji.push_back(ch);
+					dynamic_cast<serifu_furigana_part *>(cur_part.get())->kanji.push_back(ch);
 					break;
 
 				case FURIGANA:
-					dynamic_cast<serifu_furigana_part *>(cur_part)->furigana.push_back(ch);
+					dynamic_cast<serifu_furigana_part *>(cur_part.get())->furigana.push_back(ch);
 					break;
 			}
 		}
 	}
 
 	if (cur_state != NONE)
-		section_list.push_back(cur_part);
+		section_list.push_back(std::move(cur_part));
 
 	return true;
 }
@@ -185,10 +181,9 @@ serifu::parse(const wstring& text)
 void
 serifu::draw(int num_highlighted, const rgba color[2]) const
 {
-	for (section_cont::const_iterator i = section_list.begin(); i != section_list.end(); i++) {
-		const serifu_part *p = *i;
-		num_highlighted = p->draw(num_highlighted, color);
-		glTranslatef(p->get_width(), 0, 0);
+	for (auto& section : section_list) {
+		num_highlighted = section->draw(num_highlighted, color);
+		glTranslatef(section->get_width(), 0, 0);
 	}
 }
 
@@ -253,7 +248,7 @@ serifu_kana_part::get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont
 	for (size_t i = 0; i < index; i++)
 		x += kana_font->find_glyph(kana[i])->advance_x;
 
-	fx_list.push_back(new glyph_fx(kana_font, kana[index], vector2(x, 0) + offset));
+	fx_list.emplace_back(new glyph_fx(kana_font, kana[index], vector2(x, 0) + offset));
 }
 
 serifu_furigana_part::serifu_furigana_part()
@@ -301,14 +296,13 @@ serifu_furigana_part::get_kana_glyph_fx(size_t index, const vector2& offset, fx_
 	for (size_t i = 0; i < index; i++)
 		x += furigana_font->find_glyph(furigana[i])->advance_x;
 
-	fx_list.push_back(new glyph_fx(furigana_font, furigana[index], offset + vector2(x, 26)));
+	fx_list.emplace_back(new glyph_fx(furigana_font, furigana[index], offset + vector2(x, 26)));
 
 	if (index == furigana.size() - 1) {
 		float x = .5*get_width() - .5*(kanji_font->get_string_width(&kanji[0], kanji.size()));
 
-		for (wstring::const_iterator i = kanji.begin(); i != kanji.end(); i++) {
-			const wchar_t ch = *i;
-			fx_list.push_back(new glyph_fx(kanji_font, ch, offset + vector2(x, 0)));
+		for (wchar_t ch : kanji) {
+			fx_list.emplace_back(new glyph_fx(kanji_font, ch, offset + vector2(x, 0)));
 			x += kanji_font->find_glyph(ch)->advance_x;
 		}
 	}

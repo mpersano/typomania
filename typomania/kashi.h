@@ -1,8 +1,8 @@
-#ifndef KASHI_H_
-#define KASHI_H_
+#pragma once
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "rgba.h"
 #include "vector2.h"
@@ -11,9 +11,13 @@
 struct font;
 struct glyph_fx;
 
-typedef std::vector<glyph_fx *> fx_cont;
+using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
 
-struct serifu_part {
+struct serifu_part
+{
+	serifu_part() { }
+	virtual ~serifu_part() { }
+
 	virtual const wstring& get_kana() const = 0;
 
 	virtual int get_width() const = 0;
@@ -25,7 +29,10 @@ struct serifu_part {
 	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const;
 };
 
-struct serifu_kana_part : serifu_part {
+using serifu_part_ptr = std::unique_ptr<serifu_part>;
+
+struct serifu_kana_part : serifu_part
+{
 	serifu_kana_part();
 
 	const wstring& get_kana() const
@@ -38,10 +45,11 @@ struct serifu_kana_part : serifu_part {
 	void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const;
 
 	wstring kana;
-	font *kana_font;
+	const font *kana_font;
 };
 
-struct serifu_furigana_part : serifu_part {
+struct serifu_furigana_part : serifu_part
+{
 	serifu_furigana_part();
 
 	const wstring& get_kana() const
@@ -56,11 +64,12 @@ struct serifu_furigana_part : serifu_part {
 	wstring kanji;
 	wstring furigana;
 
-	font *kanji_font;
-	font *furigana_font;
+	const font *kanji_font;
+	const font *furigana_font;
 };
 
-struct serifu {
+struct serifu
+{
 	serifu(int duration)
 	: duration(duration)
 	{ }
@@ -71,9 +80,9 @@ struct serifu {
 
 	void draw(int num_highlighted, const rgba color[2]) const;
 
-	typedef std::vector<serifu_part *> section_cont;
-	typedef section_cont::iterator iterator;
-	typedef section_cont::const_iterator const_iterator;
+	using section_cont = std::vector<serifu_part_ptr>;
+	using iterator = section_cont::iterator;
+	using const_iterator = section_cont::const_iterator;
 
 	iterator begin() { return section_list.begin(); }
 	iterator end() { return section_list.end(); }
@@ -85,7 +94,10 @@ struct serifu {
 	section_cont section_list;
 };
 
-class serifu_kana_iterator {
+using serifu_ptr = std::unique_ptr<serifu>;
+
+class serifu_kana_iterator
+{
 public:
 	serifu_kana_iterator() { }
 	serifu_kana_iterator(const serifu *s);
@@ -109,7 +121,8 @@ private:
 
 struct pattern_node;
 
-struct serifu_romaji_iterator {
+struct serifu_romaji_iterator
+{
 public:
 	serifu_romaji_iterator() { }
 	serifu_romaji_iterator(const serifu *s);
@@ -128,16 +141,17 @@ private:
 	const pattern_node *cur_pattern;
 };
 
-class kashi {
+class kashi
+{
 public:
 	kashi();
 	~kashi();
 
 	bool load(const char *path);
 
-	typedef std::vector<serifu *> serifu_cont;
-	typedef serifu_cont::iterator iterator;
-	typedef serifu_cont::const_iterator const_iterator;
+	using serifu_cont = std::vector<serifu_ptr>;
+	using iterator = serifu_cont::iterator;
+	using const_iterator = serifu_cont::const_iterator;
 
 	iterator begin() { return serifu_list.begin(); }
 	iterator end() { return serifu_list.end(); }
@@ -162,4 +176,4 @@ private:
 	kashi& operator=(const kashi&);
 };
 
-#endif // KASHI_H_
+using kashi_ptr = std::unique_ptr<kashi>;

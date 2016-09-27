@@ -48,5 +48,5 @@ target_link_libraries(
 set(DATA_DIR "${CMAKE_BINARY_DIR}/data/data")
 
 add_custom_command(TARGET typomania POST_BUILD
-    COMMAND ln -s ${DATA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/data
+    COMMAND ln -sf ${DATA_DIR} ${CMAKE_CURRENT_BINARY_DIR}/data
     DEPENDS ${DATA_DIR})

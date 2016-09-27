@@ -10,20 +10,15 @@
 #include "gl_vertex_array.h"
 #include "font.h"
 
-font::~font()
-{
-	for (glyph_cont::iterator i = glyph_map.begin(); i != glyph_map.end(); i++)
-		delete i->second;
-}
-
 const font::glyph *
 font::find_glyph(int code) const
 {
-	glyph_cont::const_iterator i = glyph_map.find(code);
-if (i == glyph_map.end()) {
-	panic("glyph %d not found\n", code);
-}
-	return i != glyph_map.end() ? i->second : 0;
+	auto i = glyph_map.find(code);
+
+	if (i == glyph_map.end())
+		panic("glyph %d not found\n", code);
+
+	return i != glyph_map.end() ? i->second.get() : nullptr;
 }
 
 int
@@ -74,7 +69,8 @@ font::load(const std::string& path)
 
 	while (fgets(line, sizeof(line), fp)) {
 		int code;
-		font::glyph *g = new font::glyph;
+
+		glyph_ptr g(new glyph);
 
 		if (sscanf(line, "%d %d %d %d %d %d %d %f %f %f %f %f %f %f %f",
 		  &code, &g->width, &g->height, &g->left, &g->top, &g->advance_x, &g->advance_y,
@@ -83,7 +79,7 @@ font::load(const std::string& path)
 			return false;
 		}
 
-		glyph_map[code] = g;
+		glyph_map[code] = std::move(g);
 	}
 
 	fclose(fp);

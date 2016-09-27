@@ -154,7 +154,7 @@ menu_item::render(float pos) const
 	glPopMatrix();
 }
 
-song_menu_state::song_menu_state(const kashi_cont& kashi_list)
+song_menu_state::song_menu_state(const std::vector<kashi_ptr>& kashi_list)
 : cur_state(STATE_IDLE)
 , state_tics(0)
 , cur_selection(0)
@@ -162,14 +162,12 @@ song_menu_state::song_menu_state(const kashi_cont& kashi_list)
 , arrow_texture(texture_cache["data/images/arrow.png"])
 , bg_texture(texture_cache["data/images/menu-background.png"])
 {
-	for (kashi_cont::const_iterator i = kashi_list.begin(); i != kashi_list.end(); i++)
-		item_list.push_back(new menu_item(*i));
+	for (auto& p : kashi_list)
+		item_list.emplace_back(new menu_item(p.get()));
 }
 
 song_menu_state::~song_menu_state()
 {
-	for (item_cont::iterator i = item_list.begin(); i != item_list.end(); i++)
-		delete *i;
 }
 
 void
