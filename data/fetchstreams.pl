@@ -27,3 +27,4 @@ aquarion	https://www.youtube.com/watch?v=ASquVYXBD7Q
 shounenheart	https://www.youtube.com/watch?v=3jGlD-0sPvc
 thankyou	https://www.youtube.com/watch?v=iuJ8xRYDTOA
 shikinouta	https://www.youtube.com/watch?v=hhIiPySyRwg
+konnanitikakude	https://www.youtube.com/watch?v=tEQTi3nY4Fs
