@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "rgba.h"
-#include "vector2.h"
+#include "vec2.h"
 #include "utf8.h"
 
 struct font;
@@ -19,12 +19,9 @@ struct serifu_part
 	virtual ~serifu_part() { }
 
 	virtual const wstring& get_kana() const = 0;
-
 	virtual int get_width() const = 0;
-
 	virtual int draw(int num_highlighted, const rgba color[2]) const = 0;
-
-	virtual void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const = 0;
+	virtual void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const = 0;
 
 	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const;
 };
@@ -35,14 +32,14 @@ struct serifu_kana_part : serifu_part
 {
 	serifu_kana_part();
 
-	const wstring& get_kana() const
+	const wstring& get_kana() const override
 	{ return kana; }
 
-	int get_width() const;
+	int get_width() const override;
 
-	int draw(int num_highlighted, const rgba color[2]) const;
+	int draw(int num_highlighted, const rgba color[2]) const override;
 
-	void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const;
+	void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const override;
 
 	wstring kana;
 	const font *kana_font;
@@ -52,14 +49,14 @@ struct serifu_furigana_part : serifu_part
 {
 	serifu_furigana_part();
 
-	const wstring& get_kana() const
+	const wstring& get_kana() const override
 	{ return furigana; }
 
-	int get_width() const;
+	int get_width() const override;
 
-	int draw(int num_highlighted, const rgba color[2]) const;
+	int draw(int num_highlighted, const rgba color[2]) const override;
 
-	void get_kana_glyph_fx(size_t index, const vector2& offset, fx_cont& cont) const;
+	void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const override;
 
 	wstring kanji;
 	wstring furigana;

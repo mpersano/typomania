@@ -6,8 +6,7 @@
 #include <memory>
 
 #include "panic.h"
-#include "vector2.h"
-#include "gl_vertex_array.h"
+#include "render.h"
 #include "font.h"
 
 const font::glyph *
@@ -62,7 +61,7 @@ font::load(const std::string& path)
 		return false;
 	}
 
-	if (!texture.load(texture_path)) {
+	if (!texture_.load(texture_path)) {
 		fclose(fp);
 		return false;
 	}
@@ -85,4 +84,50 @@ font::load(const std::string& path)
 	fclose(fp);
 
 	return true;
+}
+
+float
+font::draw_string(const wchar_t *str, float x, float y, float z) const
+{
+	for (const wchar_t *p = str; *p; ++p) {
+		const glyph *gi = find_glyph(*p);
+		draw_glyph(gi, x, y, z);
+		x += gi->advance_x;
+	}
+
+	return x;
+}
+
+float
+font::draw_stringn(const wchar_t *str, size_t len, float x, float y, float z) const
+{
+	for (size_t i = 0; i < len; i++) {
+		const glyph *gi = find_glyph(str[i]);
+		draw_glyph(gi, x, y, z);
+		x += gi->advance_x;
+	}
+
+	return x;
+}
+
+void
+font::draw_glyph(wchar_t ch, float x, float y, float z) const
+{
+	draw_glyph(find_glyph(ch), x, y, z);
+}
+
+void
+font::draw_glyph(const glyph *gi, float x, float y, float z) const
+{
+	float x_left = x + gi->left;
+	float x_right = x + gi->left + gi->width;
+
+	float y_top = y + gi->top;
+	float y_bottom = y + gi->top - gi->height;
+
+	render::add_quad(
+		&texture_,
+		{ { x_left, y_top }, { x_right, y_top }, { x_left, y_bottom }, { x_right, y_bottom }  },
+		{ gi->t0, gi->t1, gi->t3, gi->t2 },
+		z);
 }

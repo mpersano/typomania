@@ -1,20 +1,22 @@
 #include <SDL.h>
-#include <GL/gl.h>
 
 #include "common.h"
+#include "render.h"
 #include "rgba.h"
 #include "kashi.h"
-#include "gl_vertex_array.h"
+#include "font.h"
 #include "in_game_state.h"
 #include "song_menu_state.h"
 
-enum {
-	START_MOVE_TICS = 40,
-	FAST_MOVE_TICS = 10,
-	ARROW_ANIMATION_TICS = 20,
+namespace {
+
+static const int START_MOVE_TICS = 40;
+static const int FAST_MOVE_TICS = 10;
+static const int ARROW_ANIMATION_TICS = 20;
+
 };
 
-static vector2
+static vec2f
 get_item_position(const float t)
 {
 	const float x = 500. + 15.*t*t;
@@ -23,7 +25,7 @@ get_item_position(const float t)
 	const float k = .8, w = 100.;
 	const float x_offset = fabs(t) < k ? -w*(.5 + .5*cos((t / k)*M_PI)) : 0;
 
-	return vector2(x + x_offset, y);
+	return vec2f(x + x_offset, y);
 }
 
 static float
@@ -43,66 +45,37 @@ get_item_color(const float t)
 	return from + f*(to - from);
 }
 
-struct menu_item {
+struct menu_item
+{
 	menu_item(const kashi *song);
 
 	void render(float pos) const;
 
-	gl_vertex_array_texuv gv_artist;
-	gl_vertex_array_texuv gv_name;
-	gl_vertex_array_texuv gv_level;
+	const kashi *song_;
 
-	const kashi *song;
+	font *small_font_;
+	font *tiny_font_;
 
-	font *small_font;
-	font *tiny_font;
-
-	gl_texture *border_texture;
+	gl_texture *border_texture_;
 };
 
 menu_item::menu_item(const kashi *song)
-: gv_artist(256)
-, gv_name(256)
-, gv_level(8)
-, song(song)
-, small_font(font_cache["data/fonts/small_font.fnt"])
-, tiny_font(font_cache["data/fonts/tiny_font.fnt"])
-, border_texture(texture_cache["data/images/item-border.png"])
+	: song_(song)
+	, small_font_(font_cache["data/fonts/small_font.fnt"])
+	, tiny_font_(font_cache["data/fonts/tiny_font.fnt"])
+	, border_texture_(texture_cache["data/images/item-border.png"])
 {
-	const float base_x = 8;
-
-	const font::glyph *small_glyph = small_font->find_glyph(L'X');
-	const float small_height = small_glyph->height;
-	const float small_top = small_glyph->top;
-	const float small_width = small_glyph->width;
-
-	const float y_offset = .5*small_height - small_top;
-
-	const font::glyph *tiny_glyph = tiny_font->find_glyph(L'X');
-	const float tiny_height = tiny_glyph->height;
-	const float tiny_top = tiny_glyph->top;
-
-	// TODO: check these coords!
-	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level/10), base_x, y_offset);
-	gv_level.add_glyph(small_font->find_glyph(L'0' + song->level%10), base_x + small_width, y_offset);
-
-	const float x_offset = base_x + 2.5*small_width;
-
-	gv_artist.add_string(tiny_font, &song->artist[0], x_offset + 2, y_offset + .5*small_height + (tiny_height - tiny_top) + 4);
-	gv_artist.add_string(tiny_font, &song->genre[0], x_offset + 2, y_offset - .5*small_height - 4);
-
-	gv_name.add_string(small_font, &song->name[0], x_offset, y_offset);
 }
 
 void
 menu_item::render(float pos) const
 {
-	const vector2 p = get_item_position(pos);
+	const vec2f p = get_item_position(pos);
 
 	const float s = get_item_scale(pos);
 
-	const vector2 p0 = get_item_position(pos - .5);
-	const vector2 p1 = get_item_position(pos + .5);
+	const vec2f p0 = get_item_position(pos - .5);
+	const vec2f p1 = get_item_position(pos + .5);
 
 	const float y0 = p0.y;
 	const float y1 = p1.y;
@@ -116,54 +89,67 @@ menu_item::render(float pos) const
 	// glColor3f(.3, .3, .6);
 
 	rgba bg_color = get_item_color(pos);
-	glColor4f(bg_color.r, bg_color.g, bg_color.b, bg_color.a);
 
-	glEnable(GL_TEXTURE_2D);
+	render::set_color(bg_color);
 
-	gl_vertex_array_texuv gv_border(8);
+	render::add_quad(
+			border_texture_,
+			{ { p.x, y0 }, { p.x, y1 }, { p.x + height, y0 }, { p.x + height, y1 } },
+			{ { 0, 0 }, { 0, 1 }, { .9, 0 }, { .9, 1 }  },
+			-10);
 
-	gv_border.add_vertex(p.x, y0, 0, 0);
-	gv_border.add_vertex(p.x + height, y0, .9, 0);
-	gv_border.add_vertex(p.x + height, y1, .9, 1);
-	gv_border.add_vertex(p.x, y1, 0, 1);
-
-	gv_border.add_vertex(p.x + height, y0, .9, 0);
-	gv_border.add_vertex(WINDOW_WIDTH, y0, .95, 0);
-	gv_border.add_vertex(WINDOW_WIDTH, y1, .95, 1);
-	gv_border.add_vertex(p.x + height, y1, .9, 1);
-
-	border_texture->bind();
-	gv_border.draw(GL_QUADS);
+	render::add_quad(
+			border_texture_,
+			{ { p.x + height, y0 }, { p.x + height, y1 }, { WINDOW_WIDTH, y0 }, { WINDOW_WIDTH, y1 } },
+			{ { .9, 0 }, { .9, 1 }, { .95, 0 }, { .95, 1 } },
+			-10);
 
 	// draw text
 
-	glColor4f(1, 1, 1, bg_color.a);
+	render::set_color({ 1, 1, 1, bg_color.a });
 
-	glPushMatrix();
+	render::push_matrix();
 
-	glTranslatef(p.x, y, 0);
-	glScalef(s, s, 1);
+	render::translate(p.x, y);
+	render::scale(s, s);
 
-	tiny_font->texture.bind();
-	gv_artist.draw(GL_QUADS);
+	const float base_x = 8;
 
-	small_font->texture.bind();
-	gv_name.draw(GL_QUADS);
-	gv_level.draw(GL_QUADS);
+	const font::glyph *small_glyph = small_font_->find_glyph(L'X');
+	const float small_height = small_glyph->height;
+	const float small_top = small_glyph->top;
+	const float small_width = small_glyph->width;
 
-	glPopMatrix();
+	const float y_offset = .5*small_height - small_top;
+
+	const font::glyph *tiny_glyph = tiny_font_->find_glyph(L'X');
+	const float tiny_height = tiny_glyph->height;
+	const float tiny_top = tiny_glyph->top;
+
+	// TODO: check these coords!
+	small_font_->draw_glyph(L'0' + song_->level/10, base_x, y_offset, 0);
+	small_font_->draw_glyph(L'0' + song_->level%10, base_x + small_width, y_offset, 0);
+
+	const float x_offset = base_x + 2.5*small_width;
+
+	tiny_font_->draw_string(&song_->artist[0], x_offset + 2, y_offset + .5*small_height + (tiny_height - tiny_top) + 4, 0);
+	tiny_font_->draw_string(&song_->genre[0], x_offset + 2, y_offset - .5*small_height - 4, 0);
+
+	small_font_->draw_string(&song_->name[0], x_offset, y_offset, 0);
+
+	render::pop_matrix();
 }
 
 song_menu_state::song_menu_state(const std::vector<kashi_ptr>& kashi_list)
-: cur_state(STATE_IDLE)
-, state_tics(0)
-, cur_selection(0)
-, cur_displayed_position(0)
-, arrow_texture(texture_cache["data/images/arrow.png"])
-, bg_texture(texture_cache["data/images/menu-background.png"])
+	: cur_state_(state::IDLE)
+	, state_tics_(0)
+	, cur_selection_(0)
+	, cur_displayed_position_(0)
+	, arrow_texture_(texture_cache["data/images/arrow.png"])
+	, bg_texture_(texture_cache["data/images/menu-background.png"])
 {
 	for (auto& p : kashi_list)
-		item_list.emplace_back(new menu_item(p.get()));
+		item_list_.emplace_back(new menu_item(p.get()));
 }
 
 song_menu_state::~song_menu_state()
@@ -173,27 +159,20 @@ song_menu_state::~song_menu_state()
 void
 song_menu_state::draw_background() const
 {
-	const int w = bg_texture->get_image_width();
-	const int h = bg_texture->get_image_height();
+	render::set_blend_mode(blend_mode::NO_BLEND);
+	render::set_color({ 1, 1, 1, 1 });
 
-	const float u = static_cast<float>(bg_texture->get_image_width())/bg_texture->get_texture_width();
-	const float v = static_cast<float>(bg_texture->get_image_height())/bg_texture->get_texture_height();
+	const int w = bg_texture_->get_image_width();
+	const int h = bg_texture_->get_image_height();
 
-	gl_vertex_array_texuv gv(4);
-	gv.add_vertex(0, 0, 0, v);
-	gv.add_vertex(w, 0, u, v);
-	gv.add_vertex(w, h, u, 0);
-	gv.add_vertex(0, h, 0, 0);
+	const float u = static_cast<float>(bg_texture_->get_image_width())/bg_texture_->get_texture_width();
+	const float v = static_cast<float>(bg_texture_->get_image_height())/bg_texture_->get_texture_height();
 
-	glColor4f(1, 1, 1, 1);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_TEXTURE_2D);
-	bg_texture->bind();
-
-	gv.draw(GL_QUADS);
+	render::add_quad(
+			bg_texture_,
+			{ { 0, 0 }, { 0, h }, { w, 0 }, { w, h } },
+			{ { 0, v }, { 0, 0 }, { u, v }, { u, 0 } },
+			-20);
 }
 
 void
@@ -201,54 +180,36 @@ song_menu_state::redraw() const
 {
 	draw_background();
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
-#if 1
-	int from = std::max<int>(cur_displayed_position - /* 1.5 */ 2, 0);
-	int to = std::min<int>(cur_displayed_position + /* 2.5 */ 3, item_list.size() - 1);
+	int from = std::max<int>(cur_displayed_position_ - /* 1.5 */ 2, 0);
+	int to = std::min<int>(cur_displayed_position_ + /* 2.5 */ 3, item_list_.size() - 1);
 
-	float pos = -cur_displayed_position + from;
+	float pos = -cur_displayed_position_ + from;
 
 	for (int i = from; i <= to; i++) {
-		item_list[i]->render(pos);
+		item_list_[i]->render(pos);
 		++pos;
 	}
-#else
-	float pos = -cur_displayed_position;
-	 
-	for (item_cont::const_iterator i = item_list.begin(); i != item_list.end(); i++) {
-		(*i)->render(pos);
-		++pos;
-	}
-#endif
 
-	if (cur_state == STATE_IDLE) {
-		const float f = static_cast<float>(state_tics % ARROW_ANIMATION_TICS)/ARROW_ANIMATION_TICS;
+	if (cur_state_ == state::IDLE) {
+		const float f = static_cast<float>(state_tics_ % ARROW_ANIMATION_TICS)/ARROW_ANIMATION_TICS;
 
 		const float t = 1. - (1. - f)*(1. - f);
 
-		const float w = arrow_texture->get_texture_width();
-		const float h = arrow_texture->get_texture_height();
+		const float w = arrow_texture_->get_texture_width();
+		const float h = arrow_texture_->get_texture_height();
 
 		const float x = 370 + t*20 - .5*w;
 		const float y = .5*WINDOW_HEIGHT;
 
-		gl_vertex_array_texuv gv(4);
-		gv.add_vertex(x, y - .5*h, 0, 0);
-		gv.add_vertex(x + w, y - .5*h, 1, 0);
-		gv.add_vertex(x + w, y + .5*h, 1, 1);
-		gv.add_vertex(x, y + .5*h, 0, 1);
+		render::set_color({ 1, 1, 1, t });
 
-		glColor4f(1, 1, 1, t);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		glEnable(GL_TEXTURE_2D);
-		arrow_texture->bind();
-
-		gv.draw(GL_QUADS);
+		render::add_quad(
+			arrow_texture_,
+			{ { x, y - .5*h }, { x, y + .5*h }, { x + w, y - .5*h }, { x + w, y + .5*h } },
+			{ { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 } },
+			0);
 	}
 }
 
@@ -257,33 +218,33 @@ song_menu_state::update()
 {
 	static const float EPSILON = 1e-3;
 
-	cur_displayed_position += .1*(cur_selection - cur_displayed_position);
-	if (fabs(cur_displayed_position - cur_selection) < EPSILON)
-		cur_displayed_position = cur_selection;
+	cur_displayed_position_ += .1*(cur_selection_ - cur_displayed_position_);
+	if (fabs(cur_displayed_position_ - cur_selection_) < EPSILON)
+		cur_displayed_position_ = cur_selection_;
 
-	++state_tics;
+	++state_tics_;
 
-	switch (cur_state) {
-		case STATE_MOVING_UP:
-			if (state_tics == move_tics) {
-				if (cur_selection > 0) {
-					--cur_selection;
-					move_tics = FAST_MOVE_TICS;
-					set_cur_state(STATE_MOVING_UP);
+	switch (cur_state_) {
+		case state::MOVING_UP:
+			if (state_tics_ == move_tics_) {
+				if (cur_selection_ > 0) {
+					--cur_selection_;
+					move_tics_ = FAST_MOVE_TICS;
+					set_cur_state(state::MOVING_UP);
 				} else {
-					set_cur_state(STATE_IDLE);
+					set_cur_state(state::IDLE);
 				}
 			}
 			break;
 
-		case STATE_MOVING_DOWN:
-			if (state_tics == move_tics) {
-				if (cur_selection < static_cast<int>(item_list.size()) - 1) {
-					++cur_selection;
-					move_tics = FAST_MOVE_TICS;
-					set_cur_state(STATE_MOVING_DOWN);
+		case state::MOVING_DOWN:
+			if (state_tics_ == move_tics_) {
+				if (cur_selection_ < static_cast<int>(item_list_.size()) - 1) {
+					++cur_selection_;
+					move_tics_ = FAST_MOVE_TICS;
+					set_cur_state(state::MOVING_DOWN);
 				} else {
-					set_cur_state(STATE_IDLE);
+					set_cur_state(state::IDLE);
 				}
 			}
 			break;
@@ -296,7 +257,7 @@ song_menu_state::update()
 void
 song_menu_state::on_key_up(int keysym)
 {
-	set_cur_state(STATE_IDLE);
+	set_cur_state(state::IDLE);
 }
 
 void
@@ -304,24 +265,24 @@ song_menu_state::on_key_down(int keysym)
 {
 	switch (keysym) {
 		case SDLK_UP:
-			if (cur_selection > 0) {
-				--cur_selection;
-				move_tics = START_MOVE_TICS;
-				set_cur_state(STATE_MOVING_UP);
+			if (cur_selection_ > 0) {
+				--cur_selection_;
+				move_tics_ = START_MOVE_TICS;
+				set_cur_state(state::MOVING_UP);
 			}
 			break;
 
 		case SDLK_DOWN:
-			if (cur_selection < static_cast<int>(item_list.size()) - 1) {
-				++cur_selection;
-				move_tics = START_MOVE_TICS;
-				set_cur_state(STATE_MOVING_DOWN);
+			if (cur_selection_ < static_cast<int>(item_list_.size()) - 1) {
+				++cur_selection_;
+				move_tics_ = START_MOVE_TICS;
+				set_cur_state(state::MOVING_DOWN);
 			}
 			break;
 
 		case SDLK_RETURN:
-			if (cur_state == STATE_IDLE)
-				the_game->push_state(new in_game_state(*item_list[cur_selection]->song));
+			if (cur_state_ == state::IDLE)
+				the_game->push_state(new in_game_state(*item_list_[cur_selection_]->song_));
 			break;
 
 		default:
@@ -332,6 +293,6 @@ song_menu_state::on_key_down(int keysym)
 void
 song_menu_state::set_cur_state(state s)
 {
-	cur_state = s;
-	state_tics = 0;
+	cur_state_ = s;
+	state_tics_ = 0;
 }

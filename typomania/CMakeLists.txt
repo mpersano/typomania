@@ -18,8 +18,8 @@ set(TYPOMANIA_SOURCES
     fft.cc
     font.cc
     game.cc
+    render.cc
     gl_texture.cc
-    gl_vertex_array.cc
     glyph_fx.cc
     image.cc
     in_game_state.cc

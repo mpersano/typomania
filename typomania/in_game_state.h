@@ -1,19 +1,19 @@
-#ifndef IN_GAME_STATE_H_
-#define IN_GAME_STATE_H_
+#pragma once
 
 #include "ogg_player.h"
 #include "spectrum_bars.h"
 #include "game.h"
 
-class in_game_state : public game_state {
+class in_game_state : public game_state
+{
 public:
 	in_game_state(const kashi& cur_kashi);
 	~in_game_state();
 
-	void redraw() const;
-	void update();
-	void on_key_up(int keysym);
-	void on_key_down(int keysym);
+	void redraw() const override;
+	void update() override;
+	void on_key_up(int keysym) override;
+	void on_key_down(int keysym) override;
 
 private:
 	void set_cur_serifu(const serifu *s, bool is_last);
@@ -65,10 +65,8 @@ private:
 	int miss;
 	int total_strokes;
 
-	font *tiny_font;
-	font *small_font;
-	font *medium_font;
-	font *big_az_font;
+	const font *tiny_font;
+	const font *small_font;
+	const font *medium_font;
+	const font *big_az_font;
 };
-
-#endif // IN_GAME_STATE_H_

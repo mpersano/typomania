@@ -35,9 +35,8 @@ private:
 	game_state *cur_state();
 	const game_state *cur_state() const;
 
-	std::stack<std::unique_ptr<game_state>> state_stack;
-
-	std::vector<kashi_ptr> kashi_list;
+	std::stack<std::unique_ptr<game_state>> state_stack_;
+	std::vector<kashi_ptr> kashi_list_;
 
 	game(const game&);
 	game& operator=(const game&);

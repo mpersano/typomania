@@ -9,6 +9,8 @@
 #include <dirent.h>
 
 #include "panic.h"
+#include "render.h"
+#include "common.h"
 #include "song_menu_state.h"
 #include "game.h"
 
@@ -19,28 +21,30 @@ game::game()
 {
 	load_song_list();
 
-	if (kashi_list.empty())
+	if (kashi_list_.empty())
 		panic("no songs loaded?");
 
-	push_state(new song_menu_state(kashi_list));
+	push_state(new song_menu_state(kashi_list_));
 }
 
 game_state *
 game::cur_state()
 {
-	return state_stack.top().get();
+	return state_stack_.top().get();
 }
 
 const game_state *
 game::cur_state() const
 {
-	return state_stack.top().get();
+	return state_stack_.top().get();
 }
 
 void
 game::redraw() const
 {
+	render::begin_batch();
 	cur_state()->redraw();
+	render::end_batch();
 }
 
 void
@@ -84,13 +88,13 @@ game::load_song_list()
 			kashi_ptr p(new kashi);
 
 			if (p->load(path.str().c_str()))
-				kashi_list.push_back(std::move(p));
+				kashi_list_.push_back(std::move(p));
 		}
 	}
 
 	closedir(dir);
 
-	std::sort(kashi_list.begin(), kashi_list.end(),
+	std::sort(std::begin(kashi_list_), std::end(kashi_list_),
 			[](const kashi_ptr& a, const kashi_ptr& b)
 			{
 				return a->level < b->level;
@@ -100,11 +104,11 @@ game::load_song_list()
 void
 game::push_state(game_state *new_state)
 {
-	state_stack.push(std::unique_ptr<game_state>(new_state));
+	state_stack_.push(std::unique_ptr<game_state>(new_state));
 }
 
 void
 game::pop_state()
 {
-	state_stack.pop();
+	state_stack_.pop();
 }

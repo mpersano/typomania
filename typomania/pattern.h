@@ -19,10 +19,10 @@ struct single_char_node : pattern_node
 {
 	single_char_node(int ch) : ch(ch) { }
 
-	bool match(int keysym) const
+	bool match(int keysym) const override
 	{ return ch == keysym; }
 
-	int get_char() const
+	int get_char() const override
 	{ return ch; }
 
 	int ch;
@@ -30,10 +30,10 @@ struct single_char_node : pattern_node
 
 struct multi_char_node : pattern_node
 {
-	bool match(int keysym) const
+	bool match(int keysym) const override
 	{ return std::find(char_list.begin(), char_list.end(), keysym) != char_list.end(); }
 
-	int get_char() const
+	int get_char() const override
 	{ return char_list[0]; }
 
 	std::vector<int> char_list;

@@ -6,12 +6,11 @@
 #include <list>
 
 #include <SDL.h>
-#include <GL/gl.h>
 
 #include "common.h"
+#include "render.h"
 #include "pattern.h"
 #include "kana.h"
-#include "gl_vertex_array.h"
 #include "glyph_fx.h"
 #include "in_game_state.h"
 
@@ -41,10 +40,7 @@ glyph_fxs_reset()
 static void
 glyph_fxs_draw()
 {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE);
-
-	glEnable(GL_TEXTURE_2D);
+	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
 
 	for (auto& p : glyph_fxs)
 		p->draw();
@@ -255,11 +251,10 @@ in_game_state::redraw() const
 void
 in_game_state::draw_hud(float alpha) const
 {
-#ifndef MUTE
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
-	glColor4f(1, 1, 1, .1*alpha);
+#ifndef MUTE
+	render::set_color({ 1, 1, 1, .2f*alpha });
 	spectrum.draw();
 #endif
 
@@ -390,12 +385,12 @@ get_num_digits(int n)
 }
 
 static float
-draw_integer_r(gl_vertex_array_texuv& gv, const font *f, float x, float y, float w, bool zero_padded, int num_digits, int value)
+draw_integer_r(const font *f, float x, float y, float w, bool zero_padded, int num_digits, int value)
 {
-	gv.add_glyph(f->find_glyph(value%10 + L'0'), x, y);
+	f->draw_glyph(value%10 + L'0', x, y, 0);
 
 	if (value/10 || (zero_padded && num_digits > 1))
-		return draw_integer_r(gv, f, x - w, y, w, zero_padded, num_digits - 1, value/10);
+		return draw_integer_r(f, x - w, y, w, zero_padded, num_digits - 1, value/10);
 	else
 		return x - w;
 }
@@ -403,32 +398,20 @@ draw_integer_r(gl_vertex_array_texuv& gv, const font *f, float x, float y, float
 static void
 draw_integer(const font *f, float base_x, float base_y, bool zero_padded, int num_digits, int value)
 {
-	static gl_vertex_array_texuv gv(256);
-	gv.reset();
-
 	const font::glyph *g = f->find_glyph(L'0');
 	base_y += .5*g->height - g->top;
 
-	const float x = draw_integer_r(gv, f, base_x, base_y, g->advance_x, zero_padded, num_digits, abs(value));
+	const float x = draw_integer_r(f, base_x, base_y, g->advance_x, zero_padded, num_digits, abs(value));
 
 	if (value < 0)
-		gv.add_glyph(f->find_glyph(L'-'), x, base_y);
-
-	f->texture.bind();
-	gv.draw(GL_QUADS);
+		f->draw_glyph(L'-', x, base_y, 0);
 }
 
 static void
 draw_string(const font *f, float x, float y, const wchar_t *str)
 {
-	static gl_vertex_array_texuv gv(256);
-	gv.reset();
-
 	const font::glyph *g = f->find_glyph(L'X');
-	gv.add_string(f, str, x, y + .5*g->height - g->top);
-
-	f->texture.bind();
-	gv.draw(GL_QUADS);
+	f->draw_string(str, x, y + .5*g->height - g->top,0);
 }
 
 void
@@ -441,27 +424,20 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 	const float x0 = x, x1 = x + w, xm = x0 + (x1 - x0)*partial/total;
 	const float y0 = y - .5*h, y1 = y + .5*h;
 
-	glColor4f(1, 1, 1, alpha);
-	glEnable(GL_TEXTURE_2D);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
+	render::set_color({ 1, 1, 1, alpha });
+
 	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
 
-	glDisable(GL_TEXTURE_2D);
+	render::set_color({ 1, 1, 1, alpha });
+	render::add_quad(
+			{ { x0, y0 }, { x0, y1 }, { xm, y0 }, { xm, y1 } },
+			0);
 
-	glBegin(GL_QUADS);
-
-	glColor4f(1, 1, 1, alpha);
-	glVertex2f(x0, y0);
-	glVertex2f(x0, y1);
-	glVertex2f(xm, y1);
-	glVertex2f(xm, y0);
-
-	glColor4f(.5, .5, .5, alpha);
-	glVertex2f(xm, y0);
-	glVertex2f(xm, y1);
-	glVertex2f(x1, y1);
-	glVertex2f(x1, y0);
-
-	glEnd();
+	render::set_color({ .5, .5, .5, alpha });
+	render::add_quad(
+			{ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } },
+			0);
 }
 
 void
@@ -479,8 +455,8 @@ in_game_state::draw_time_bars(float alpha) const
 void
 in_game_state::draw_timers(float alpha) const
 {
-	static gl_vertex_array_texuv gv(11*4);
-	gv.reset();
+	render::set_color({ 1, 1, 1, alpha });
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
 	const font *f = tiny_font;
 	const int dx = f->find_glyph(L'0')->advance_x;
@@ -489,8 +465,8 @@ in_game_state::draw_timers(float alpha) const
 	float y = 204;
 
 #define DRAW_GLYPH(c) \
-	gv.add_glyph(f->find_glyph(c), x, y); \
-	x += dx; \
+	f->draw_glyph(c, x, y, 0); \
+	x += dx;
 
 #define DRAW_PART(v) \
 	DRAW_GLYPH(L'0' + (v)/10) \
@@ -507,16 +483,6 @@ in_game_state::draw_timers(float alpha) const
 
 #undef DRAW_PART
 #undef DRAW_GLYPH
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_TEXTURE_2D);
-
-	glColor4f(1, 1, 1, alpha);
-
-	f->texture.bind();
-	gv.draw(GL_QUADS);
 }
 
 void
@@ -547,21 +513,22 @@ in_game_state::draw_serifu(float alpha) const
 	if (serifu) {
 		const rgba color[2] = { rgba(0, 1, 1, alpha), rgba(1, 1, 1, alpha) };
 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
-		glEnable(GL_TEXTURE_2D);
+		render::push_matrix();
+		render::translate(base_x, base_y);
 
-		glPushMatrix();
-		glTranslatef(base_x, base_y, 0);
 		serifu->draw(highlighted, color);
-		glPopMatrix();
+
+		render::pop_matrix();
 	}
 
-	glPushMatrix();
-	glTranslatef(base_x, base_y, 0);
+	render::push_matrix();
+	render::translate(base_x, base_y);
+
 	glyph_fxs_draw();
-	glPopMatrix();
+
+	render::pop_matrix();
 }
 
 void
@@ -576,10 +543,7 @@ in_game_state::draw_input_buffer(float alpha) const
 	const font::glyph *small_glyph = small_font->find_glyph(L'X');
 	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
 
-	static gl_vertex_array_texuv gv(256);
-	gv.reset();
-
-	glColor4f(1, 1, 1, alpha);
+	render::set_color({ 1, 1, 1, alpha });
 
 	bool is_first = true;
 
@@ -589,29 +553,18 @@ in_game_state::draw_input_buffer(float alpha) const
 		const int ch = *iter;
 
 		if (is_first) {
-			gv.reset();
-			gv.add_glyph(big_az_font->find_glyph(ch), x, big_y);
-			big_az_font->texture.bind();
-			gv.draw(GL_QUADS);
-
+			big_az_font->draw_glyph(ch, x, big_y, 0);
 			x += big_glyph->advance_x;
-
 			is_first = false;
-
-			gv.reset();
 		} else {
 			const font::glyph *g = small_font->find_glyph(ch);
-			gv.add_glyph(small_font->find_glyph(ch), x, small_y);
-
+			small_font->draw_glyph(ch, x, small_y, 0);
 			x += g->advance_x;
 		}
 	}
-
-	small_font->texture.bind();
-	gv.draw(GL_QUADS);
 }
 
-float 
+float
 in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const
 {
 	draw_string(tiny_font, x, y, label);
@@ -621,7 +574,7 @@ in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, bool zer
 	return x;
 }
 
-float 
+float
 in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const
 {
 	draw_string(tiny_font, x, y, label);
@@ -636,10 +589,8 @@ in_game_state::draw_hud_counters(float alpha) const
 {
 	const float base_y = 140;
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glColor4f(1, 1, 1, alpha);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
+	render::set_color({ 1, 1, 1, alpha });
 
 	if (combo) {
 		draw_integer(small_font, 40, base_y, false, 0, combo);
@@ -702,12 +653,8 @@ in_game_state::get_class() const
 void
 in_game_state::draw_song_info() const
 {
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glEnable(GL_TEXTURE_2D);
-
-	glColor4f(1, 1, 1, 1);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
+	render::set_color({ 1, 1, 1, 1 });
 
 	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
 	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);
@@ -722,8 +669,7 @@ in_game_state::draw_results(int tic) const
 		LINE_INTERVAL = 40,
 	};
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
 	const int digit_width = small_font->find_glyph(L'0')->advance_x;
 
@@ -732,13 +678,9 @@ in_game_state::draw_results(int tic) const
 
 #define DRAW_LABEL(f, str) \
 	{ \
-	glColor4f(1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1); \
-	static gl_vertex_array_texuv gv(80); \
-	gv.reset(); \
+	render::set_color({ 1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1 }); \
 	const font::glyph *g = f->find_glyph(L'X'); \
-	gv.add_string(f, str, base_x - f->get_string_width(str), base_y + .5*g->height - g->top); \
-	f->texture.bind(); \
-	gv.draw(GL_QUADS); \
+	f->draw_string(str, base_x - f->get_string_width(str), base_y + .5*g->height - g->top, 0); \
 	}
 
 #define NEXT_Y \
@@ -764,7 +706,7 @@ in_game_state::draw_results(int tic) const
 
 	base_y -= 30;
 
-	glColor4f(1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1);
+	render::set_color({ 1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1 });
 
 	DRAW_LABEL(small_font, L"CLASS")
 	draw_string(big_az_font, base_x + 2*digit_width, base_y, get_class());

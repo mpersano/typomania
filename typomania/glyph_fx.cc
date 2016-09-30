@@ -1,50 +1,47 @@
 #include <cmath>
 
 #include <SDL.h>
-#include <GL/gl.h>
 
-#include "gl_vertex_array.h"
+#include "render.h"
 #include "glyph_fx.h"
 
-glyph_fx::glyph_fx(const font *f, wchar_t ch, const vector2& p)
-: f(f)
-, gi(f->find_glyph(ch))
-, x(p.x + gi->left + .5*gi->width)
-, y(p.y + gi->top - .5*gi->height)
-, tics(0)
-{ }
+glyph_fx::glyph_fx(const font *f, wchar_t ch, const vec2f& p)
+: texture_(f->get_texture())
+, gi_(f->find_glyph(ch))
+, x_(p.x + gi_->left + .5*gi_->width)
+, y_(p.y + gi_->top - .5*gi_->height)
+, tics_(0)
+{
+}
 
 void
 glyph_fx::draw() const
 {
-	const vector2& t0 = gi->t0;
-	const vector2& t1 = gi->t1;
-	const vector2& t2 = gi->t2;
-	const vector2& t3 = gi->t3;
+	const vec2f& t0 = gi_->t0;
+	const vec2f& t1 = gi_->t1;
+	const vec2f& t2 = gi_->t2;
+	const vec2f& t3 = gi_->t3;
 
-	const float t = static_cast<float>(tics)/TTL;
+	const float t = static_cast<float>(tics_)/TTL;
 	const float s = sinf(t*M_PI);
 
-	enum { NUM_LAYERS = 8, };
-
-	static gl_vertex_array_texuv_color gv(4*NUM_LAYERS);
-	gv.reset();
+	static const int NUM_LAYERS = 8;
 
 	for (int i = 0; i < NUM_LAYERS; i++) {
 		const float q = 1. - static_cast<float>(i)/NUM_LAYERS;
-		const int c = 255*q*q*(1. - t)*(1. - t);
+		const float c = q*q*(1. - t)*(1. - t);
 
 		const float f = 1 + .2*s*i;
 
-#define ADD_VERTEX(dx, dy, n) \
-		gv.add_vertex(x + dx*f*.5*gi->width, y + dy*f*.5*gi->height, t ## n.x, t ## n.y, c, c, c, 255);
-		ADD_VERTEX(-1, +1, 0)
-		ADD_VERTEX(+1, +1, 1)
-		ADD_VERTEX(+1, -1, 2)
-		ADD_VERTEX(-1, -1, 3)
-#undef ADD_VERTEX
-	}
+		render::set_color({ c, c, c, 255 });
 
-	f->texture.bind();
-	gv.draw(GL_QUADS);
+		const float xo = f*.5*gi_->width;
+		const float yo = f*.5*gi_->height;
+
+		render::add_quad(
+			texture_,
+			{ { x_ - xo, y_ + yo }, { x_ - xo, y_ - yo }, { x_ + xo, y_ + yo }, { x_ + xo, y_ - yo } },
+			{ t0, t3, t1, t2 },
+			10);
+	}
 }

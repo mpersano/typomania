@@ -1,11 +1,10 @@
 #include <cmath>
 #include <cstring>
 
-#include <GL/gl.h>
-
 #include "common.h"
+#include "render.h"
 #include "fft.h"
-#include "gl_vertex_array.h"
+#include "gl_texture.h"
 #include "spectrum_bars.h"
 
 spectrum_bars::spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bands)
@@ -23,10 +22,10 @@ spectrum_bars::update(unsigned cur_ms)
 void
 spectrum_bars::draw() const
 {
-	glPushMatrix();
-	glTranslatef(base_x, base_y, 0);
+	render::push_matrix();
+	render::translate(base_x, base_y);
 	render_spectrum_bars(spectrum_window, WINDOW_SIZE/4, 4.*height);
-	glPopMatrix();
+	render::pop_matrix();
 }
 
 void
@@ -84,8 +83,6 @@ spectrum_bars::render_spectrum_bars(const float *samples, int num_samples, float
 
 	int x = 0;
 
-	gl_vertex_array_texuv gv(256);
-
 	for (int i = 0; i < num_bands; i++) {
 		float w = 0;
 
@@ -101,15 +98,12 @@ spectrum_bars::render_spectrum_bars(const float *samples, int num_samples, float
 
 		const float u = w/height;
 
-		gv.add_vertex(x, 0, 0, 0);
-		gv.add_vertex(x, w, 0, u);
-		gv.add_vertex(x + dx - 1, w, 1, u);
-		gv.add_vertex(x + dx - 1, 0, 1, 0);
+		render::add_quad(
+			bar_texture,
+			{ { x, 0 }, { x, w }, { x + dx - 1, 0 }, { x + dx - 1, w } },
+			{ { 0, 0 }, { 0, u }, { 1, 0 }, { 1, u } },
+			-10);
 
 		x += dx;
 	}
-
-	glEnable(GL_TEXTURE_2D);
-	bar_texture->bind();
-	gv.draw(GL_QUADS);
 }

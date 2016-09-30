@@ -1,7 +1,12 @@
-#ifndef RGBA_H_
-#define RGBA_H_
+#pragma once
 
-struct rgba {
+struct rgba
+{
+	rgba()
+	: r(0), g(0), b(0), a(0)
+	{
+	}
+
 	rgba(float r, float g, float b, float a)
 	: r(r), g(g), b(b), a(a)
 	{ }
@@ -20,6 +25,6 @@ struct rgba {
 
 static inline rgba
 operator*(float s, const rgba& color)
-{ return color*s; }
-
-#endif // RGBA_H_
+{
+	return color*s;
+}

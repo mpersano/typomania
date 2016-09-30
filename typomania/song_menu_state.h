@@ -14,33 +14,32 @@ public:
 	song_menu_state(const std::vector<kashi_ptr>& kashi_list);
 	~song_menu_state();
 
-	void redraw() const;
-	void update();
-	void on_key_up(int keysym);
-	void on_key_down(int keysym);
+	void redraw() const override;
+	void update() override;
+	void on_key_up(int keysym) override;
+	void on_key_down(int keysym) override;
 
 private:
 	void draw_background() const;
 
-	using item_cont = std::vector<menu_item_ptr>;
-	item_cont item_list;
+	std::vector<menu_item_ptr> item_list_;
 
-	enum state {
-		STATE_IDLE,
-		STATE_MOVING_UP,
-		STATE_MOVING_DOWN,
+	enum class state {
+		IDLE,
+		MOVING_UP,
+		MOVING_DOWN,
 	};
 
 	void set_cur_state(state s);
 
-	state cur_state;
-	int state_tics;
+	state cur_state_;
+	int state_tics_;
 
-	int cur_selection;
-	float cur_displayed_position;
+	int cur_selection_;
+	float cur_displayed_position_;
 
-	int move_tics;
+	int move_tics_;
 
-	gl_texture *arrow_texture;
-	gl_texture *bg_texture;
+	const gl_texture *arrow_texture_;
+	const gl_texture *bg_texture_;
 };

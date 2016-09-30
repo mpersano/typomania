@@ -8,12 +8,13 @@
 #include <AL/al.h>
 #include <vorbis/vorbisfile.h>
 
-class ogg_player {
+class ogg_player
+{
 	friend class spectrum_bars;
 
 public:
 	ogg_player();
-	virtual ~ogg_player();
+	~ogg_player();
 
 	void open(const std::string& path);
 	void close();
