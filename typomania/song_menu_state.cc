@@ -1,11 +1,10 @@
 #include <SDL.h>
 
-#include "common.h"
+#include "resources.h"
 #include "render.h"
 #include "rgba.h"
 #include "kashi.h"
 #include "font.h"
-#include "in_game_state.h"
 #include "song_menu_state.h"
 
 namespace {
@@ -16,66 +15,51 @@ static const int ARROW_ANIMATION_TICS = 20;
 
 };
 
-static vec2f
-get_item_position(const float t)
+class menu_item
 {
-	const float x = 500. + 15.*t*t;
-	const float y = .5*WINDOW_HEIGHT - 100.*t/(1. + .1*fabs(t));
-
-	const float k = .8, w = 100.;
-	const float x_offset = fabs(t) < k ? -w*(.5 + .5*cos((t / k)*M_PI)) : 0;
-
-	return vec2f(x + x_offset, y);
-}
-
-static float
-get_item_scale(const float t)
-{
-	return 1.2 - .07*t*t;
-}
-
-static rgba
-get_item_color(const float t)
-{
-	const rgba from(.3, .6, 1, .5), to(1, 1, 1, 1);
-
-	const float k = 1.;
-	const float f = fabs(t) < k ? .5 + .5*cos((t/k)*M_PI) : 0;
-
-	return from + f*(to - from);
-}
-
-struct menu_item
-{
-	menu_item(const kashi *song);
+public:
+	menu_item(int window_width, int window_height, const kashi *song);
 
 	void render(float pos) const;
 
+	const kashi *get_song() const
+	{ return song_; }
+
+private:
+	vec2f get_position(const float t) const;
+	float get_scale(float t) const;
+	rgba get_color(float t) const;
+
+	int window_width_;
+	int window_height_;
+
 	const kashi *song_;
 
-	font *small_font_;
-	font *tiny_font_;
+	const font *small_font_;
+	const font *tiny_font_;
 
-	gl_texture *border_texture_;
+	const gl_texture *border_texture_;
 };
 
-menu_item::menu_item(const kashi *song)
-	: song_(song)
-	, small_font_(font_cache["data/fonts/small_font.fnt"])
-	, tiny_font_(font_cache["data/fonts/tiny_font.fnt"])
-	, border_texture_(texture_cache["data/images/item-border.png"])
+menu_item::menu_item(int window_width, int window_height, const kashi *song)
+	: window_width_(window_width)
+	, window_height_(window_height)
+	, song_(song)
+	, small_font_(get_font("data/fonts/small_font.fnt"))
+	, tiny_font_(get_font("data/fonts/tiny_font.fnt"))
+	, border_texture_(get_texture("data/images/item-border.png"))
 {
 }
 
 void
 menu_item::render(float pos) const
 {
-	const vec2f p = get_item_position(pos);
+	const vec2f p = get_position(pos);
 
-	const float s = get_item_scale(pos);
+	const float s = get_scale(pos);
 
-	const vec2f p0 = get_item_position(pos - .5);
-	const vec2f p1 = get_item_position(pos + .5);
+	const vec2f p0 = get_position(pos - .5);
+	const vec2f p1 = get_position(pos + .5);
 
 	const float y0 = p0.y;
 	const float y1 = p1.y;
@@ -86,9 +70,7 @@ menu_item::render(float pos) const
 
 	// draw border
 
-	// glColor3f(.3, .3, .6);
-
-	rgba bg_color = get_item_color(pos);
+	rgba bg_color = get_color(pos);
 
 	render::set_color(bg_color);
 
@@ -99,10 +81,10 @@ menu_item::render(float pos) const
 			-10);
 
 	render::add_quad(
-			border_texture_,
-			{ { p.x + height, y0 }, { p.x + height, y1 }, { WINDOW_WIDTH, y0 }, { WINDOW_WIDTH, y1 } },
-			{ { .9, 0 }, { .9, 1 }, { .95, 0 }, { .95, 1 } },
-			-10);
+		border_texture_,
+		{ { p.x + height, y0 }, { p.x + height, y1 }, { window_width_, y0 }, { window_width_, y1 } },
+		{ { .9, 0 }, { .9, 1 }, { .95, 0 }, { .95, 1 } },
+		-10);
 
 	// draw text
 
@@ -140,16 +122,46 @@ menu_item::render(float pos) const
 	render::pop_matrix();
 }
 
-song_menu_state::song_menu_state(const std::vector<kashi_ptr>& kashi_list)
-	: cur_state_(state::IDLE)
+vec2f
+menu_item::get_position(const float t) const
+{
+	const float x = 500. + 15.*t*t;
+	const float y = .5*window_height_ - 100.*t/(1. + .1*fabs(t));
+
+	const float k = .8, w = 100.;
+	const float x_offset = fabs(t) < k ? -w*(.5 + .5*cos((t / k)*M_PI)) : 0;
+
+	return { x + x_offset, y };
+}
+
+float
+menu_item::get_scale(const float t) const
+{
+	return 1.2 - .07*t*t;
+}
+
+rgba
+menu_item::get_color(const float t) const
+{
+	const rgba from(.3, .6, 1, .5), to(1, 1, 1, 1);
+
+	const float k = 1.;
+	const float f = fabs(t) < k ? .5 + .5*cos((t/k)*M_PI) : 0;
+
+	return from + f*(to - from);
+}
+
+song_menu_state::song_menu_state(game *parent, const std::vector<kashi_ptr>& kashi_list)
+	: game_state(parent)
+	, cur_state_(state::IDLE)
 	, state_tics_(0)
 	, cur_selection_(0)
 	, cur_displayed_position_(0)
-	, arrow_texture_(texture_cache["data/images/arrow.png"])
-	, bg_texture_(texture_cache["data/images/menu-background.png"])
+	, arrow_texture_(get_texture("data/images/arrow.png"))
+	, bg_texture_(get_texture("data/images/menu-background.png"))
 {
 	for (auto& p : kashi_list)
-		item_list_.emplace_back(new menu_item(p.get()));
+		item_list_.emplace_back(new menu_item(parent_->get_window_width(), parent_->get_window_height(), p.get()));
 }
 
 song_menu_state::~song_menu_state()
@@ -201,7 +213,7 @@ song_menu_state::redraw() const
 		const float h = arrow_texture_->get_texture_height();
 
 		const float x = 370 + t*20 - .5*w;
-		const float y = .5*WINDOW_HEIGHT;
+		const float y = .5*parent_->get_window_height();
 
 		render::set_color({ 1, 1, 1, t });
 
@@ -282,7 +294,7 @@ song_menu_state::on_key_down(int keysym)
 
 		case SDLK_RETURN:
 			if (cur_state_ == state::IDLE)
-				the_game->push_state(new in_game_state(*item_list_[cur_selection_]->song_));
+				parent_->enter_in_game_state(*item_list_[cur_selection_]->get_song());
 			break;
 
 		default:

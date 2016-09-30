@@ -30,7 +30,7 @@ private:
 	int base_x, base_y, width, height;
 	int num_bands;
 
-	gl_texture *bar_texture;
+	const gl_texture *bar_texture;
 };
 
 #endif // SPECTRUM_BARS_H_

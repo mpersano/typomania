@@ -7,7 +7,7 @@
 
 #include <SDL.h>
 
-#include "common.h"
+#include "resources.h"
 #include "render.h"
 #include "pattern.h"
 #include "kana.h"
@@ -181,8 +181,9 @@ kana_buffer::clear_prev_fx()
 
 static kana_buffer input_buffer;
 
-in_game_state::in_game_state(const kashi& cur_kashi)
-: cur_kashi(cur_kashi)
+in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
+: game_state(parent)
+, cur_kashi(cur_kashi)
 , cur_state(PLAYING)
 , state_tics(0)
 #ifndef MUTE
@@ -197,10 +198,10 @@ in_game_state::in_game_state(const kashi& cur_kashi)
 , max_combo(0)
 , miss(0)
 , total_strokes(0)
-, tiny_font(font_cache["data/fonts/tiny_font.fnt"])
-, small_font(font_cache["data/fonts/small_font.fnt"])
-, medium_font(font_cache["data/fonts/medium_font.fnt"])
-, big_az_font(font_cache["data/fonts/big_az_font.fnt"])
+, tiny_font(get_font("data/fonts/tiny_font.fnt"))
+, small_font(get_font("data/fonts/small_font.fnt"))
+, medium_font(get_font("data/fonts/medium_font.fnt"))
+, big_az_font(get_font("data/fonts/big_az_font.fnt"))
 {
 	glyph_fxs_reset();
 
@@ -362,7 +363,7 @@ in_game_state::on_key_down(int keysym)
 		}
 	} else if (cur_state == OUTRO) {
 		if (keysym == SDLK_ESCAPE || keysym == SDLK_SPACE)
-			the_game->pop_state();
+			parent_->leave_state();
 	}
 }
 
@@ -418,7 +419,7 @@ void
 in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total, float alpha) const
 {
 	const float x = 120;
-	const float w = WINDOW_WIDTH - x - 8;
+	const float w = parent_->get_window_width() - x - 8;
 	const float h = 5;
 
 	const float x0 = x, x1 = x + w, xm = x0 + (x1 - x0)*partial/total;
@@ -461,7 +462,7 @@ in_game_state::draw_timers(float alpha) const
 	const font *f = tiny_font;
 	const int dx = f->find_glyph(L'0')->advance_x;
 
-	float x = WINDOW_WIDTH - 12 - 11*dx;
+	float x = parent_->get_window_width() - 12 - 11*dx;
 	float y = 204;
 
 #define DRAW_GLYPH(c) \
@@ -673,7 +674,7 @@ in_game_state::draw_results(int tic) const
 
 	const int digit_width = small_font->find_glyph(L'0')->advance_x;
 
-	float base_x = WINDOW_WIDTH/2;
+	float base_x = parent_->get_window_width()/2;
 	float base_y = 320;
 
 #define DRAW_LABEL(f, str) \

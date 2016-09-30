@@ -7,7 +7,6 @@ TODO/FEATURES
 * particles
 
 TODO/REFACTORING
-* get rid of the_game global
 * hide texture cache
 * hide font cache
 
@@ -16,6 +15,3 @@ TODO/CONTENT
 
 TODO/META
 * README
-
-DONE
-v batch sprites

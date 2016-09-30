@@ -1,11 +1,10 @@
-#ifndef GL_TEXTURE_H_
-#define GL_TEXTURE_H_
+#pragma once
 
 #include <GL/gl.h>
-
 #include <string>
 
-class gl_texture {
+class gl_texture
+{
 public:
 	gl_texture();
 	~gl_texture();
@@ -32,5 +31,3 @@ private:
 
 	GLuint texture_id;
 };
-
-#endif // GL_TEXTURE_H_

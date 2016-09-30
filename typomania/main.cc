@@ -15,110 +15,131 @@
 #include <AL/al.h>
 
 #include "panic.h"
-#include "font.h"
 #include "common.h"
 #include "game.h"
 
-resource_cache<gl_texture> texture_cache;
-resource_cache<font> font_cache;
+class game_app
+{
+public:
+	game_app(int window_width, int window_height);
+	~game_app();
 
-game_ptr the_game;
+	void event_loop();
 
-static ALCdevice *al_device;
-static ALCcontext *al_context;
+private:
+	void redraw();
+	void handle_events();
 
-static bool running;
+	void init_sdl(int window_width, int window_height);
+	void release_sdl();
 
-static void
-init_sdl()
+	void init_openal();
+	void release_openal();
+
+	bool running_;
+
+	ALCdevice *al_device_;
+	ALCcontext *al_context_;
+
+	std::unique_ptr<game> game_;
+};
+
+game_app::game_app(int window_width, int window_height)
+	: running_ { false }
+{
+	init_sdl(window_width, window_height);
+	init_openal();
+
+	game_.reset(new game(window_width, window_height));
+}
+
+game_app::~game_app()
+{
+	game_.reset(nullptr);
+
+	release_openal();
+	release_sdl();
+}
+
+void
+game_app::init_sdl(int window_width, int window_height)
 {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		panic("SDL_Init: %s", SDL_GetError());
 
-	if (SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 0, SDL_OPENGL) == 0)
+	if (SDL_SetVideoMode(window_width, window_height, 0, SDL_OPENGL) == 0)
 		panic("SDL_SetVideoMode: %s", SDL_GetError());
 
-	SDL_WM_SetCaption("foo", 0);
+	SDL_WM_SetCaption("typomania", nullptr);
 }
 
-static void
-release_sdl()
+void
+game_app::release_sdl()
 {
 	SDL_Quit();
 }
 
 void
-init_openal()
+game_app::init_openal()
 {
-	if (!(al_device = alcOpenDevice(NULL)))
+	if (!(al_device_ = alcOpenDevice(nullptr)))
 		panic("alcOpenDevice failed");
 
-	if (!(al_context = alcCreateContext(al_device, NULL)))
+	if (!(al_context_ = alcCreateContext(al_device_, nullptr)))
 		panic("alcCreateContext failed");
 
-	alcMakeContextCurrent(al_context);
+	alcMakeContextCurrent(al_context_);
 	alGetError();
 }
 
 void
-release_openal()
+game_app::release_openal()
 {
-	alcMakeContextCurrent(NULL);
-	alcDestroyContext(al_context);
-	alcCloseDevice(al_device);
+	alcMakeContextCurrent(nullptr);
+	alcDestroyContext(al_context_);
+	alcCloseDevice(al_device_);
 }
 
-static void
-redraw()
+void
+game_app::redraw()
 {
-	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, WINDOW_WIDTH, 0, WINDOW_HEIGHT, -1, 1);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	the_game->redraw();
-
+	game_->redraw();
 	SDL_GL_SwapBuffers();
 }
 
-static void
-handle_events()
+void
+game_app::handle_events()
 {
 	SDL_Event event;
 
 	while (SDL_PollEvent(&event)) {
 		switch (event.type) {
 			case SDL_QUIT:
-				running = false;
+				running_ = false;
 				break;
 
 			case SDL_KEYDOWN:
-				the_game->on_key_down(event.key.keysym.sym);
+				game_->on_key_down(event.key.keysym.sym);
 				break;
 
 			case SDL_KEYUP:
-				the_game->on_key_up(event.key.keysym.sym);
+				game_->on_key_up(event.key.keysym.sym);
 				break;
 		}
 	}
 }
 
-static void
-event_loop()
+void
+game_app::event_loop()
 {
-	running = true;
+	running_ = true;
 
-	while (running) {
+	while (running_) {
 		int start = SDL_GetTicks();
 
 		redraw();
 
-		the_game->update();
+		game_->update();
 		handle_events();
 
 		int delay = 1000/TICS_PER_SECOND - (SDL_GetTicks() - start);
@@ -127,32 +148,8 @@ event_loop()
 	}
 }
 
-void
-init()
-{
-	init_sdl();
-#ifndef MUTE
-	init_openal();
-#endif
-	the_game.reset(new game);
-}
-
-void
-release()
-{
-	the_game.reset(0);
-	release_sdl();
-#ifndef MUTE
-	release_openal();
-#endif
-}
-
 int
 main(int argc, char *argv[])
 {
-	init();
-	event_loop();
-	release();
-
-	return 0;
+	game_app(800, 400).event_loop();
 }

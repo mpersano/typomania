@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include "common.h"
+#include "resources.h"
 #include "render.h"
 #include "fft.h"
 #include "gl_texture.h"
@@ -10,7 +11,7 @@
 spectrum_bars::spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bands)
 : player(player)
 , base_x(x), base_y(y), width(w), height(h), num_bands(num_bands)
-, bar_texture(texture_cache["data/images/spectrum-bar.png"])
+, bar_texture(get_texture("data/images/spectrum-bar.png"))
 { }
 
 void

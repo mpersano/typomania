@@ -20,6 +20,7 @@ set(TYPOMANIA_SOURCES
     game.cc
     render.cc
     gl_texture.cc
+    resources.cc
     glyph_fx.cc
     image.cc
     in_game_state.cc

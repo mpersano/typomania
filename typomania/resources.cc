@@ -1,5 +1,4 @@
-#pragma unique
-
+#include "gl_texture.h"
 #include <cstdio>
 
 #include <string>
@@ -7,6 +6,9 @@
 #include <unordered_map>
 
 #include "panic.h"
+
+#include "font.h"
+#include "resources.h"
 
 template <typename T>
 class resource_cache
@@ -33,3 +35,15 @@ public:
 private:
 	std::unordered_map<std::string, std::unique_ptr<T>> resource_map;
 };
+
+const font *get_font(const std::string& path)
+{
+	static resource_cache<font> cache;
+	return cache[path];
+}
+
+const gl_texture *get_texture(const std::string& path)
+{
+	static resource_cache<gl_texture> cache;
+	return cache[path];
+}

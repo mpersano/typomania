@@ -11,7 +11,7 @@ using menu_item_ptr = std::unique_ptr<menu_item>;
 class song_menu_state : public game_state
 {
 public:
-	song_menu_state(const std::vector<kashi_ptr>& kashi_list);
+	song_menu_state(game *parent, const std::vector<kashi_ptr>& kashi_list);
 	~song_menu_state();
 
 	void redraw() const override;

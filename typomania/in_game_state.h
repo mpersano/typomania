@@ -7,7 +7,7 @@
 class in_game_state : public game_state
 {
 public:
-	in_game_state(const kashi& cur_kashi);
+	in_game_state(game *parent, const kashi& cur_kashi);
 	~in_game_state();
 
 	void redraw() const override;

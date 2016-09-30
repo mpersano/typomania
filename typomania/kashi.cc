@@ -5,7 +5,7 @@
 #include <cassert>
 
 #include "panic.h"
-#include "common.h"
+#include "resources.h"
 #include "render.h"
 #include "pattern.h"
 #include "kana.h"
@@ -215,7 +215,7 @@ serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int
 }
 
 serifu_kana_part::serifu_kana_part()
-: kana_font(font_cache["data/fonts/small_font.fnt"])
+: kana_font(get_font("data/fonts/small_font.fnt"))
 { }
 
 int
@@ -243,8 +243,8 @@ serifu_kana_part::get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& 
 }
 
 serifu_furigana_part::serifu_furigana_part()
-: kanji_font(font_cache["data/fonts/small_font.fnt"])
-, furigana_font(font_cache["data/fonts/tiny_font.fnt"])
+: kanji_font(get_font("data/fonts/small_font.fnt"))
+, furigana_font(get_font("data/fonts/tiny_font.fnt"))
 { }
 
 int
