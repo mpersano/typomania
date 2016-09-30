@@ -96,7 +96,7 @@ void render_queue::begin_batch()
 {
 	sprite_queue_size_ = 0;
 	blend_mode_ = blend_mode::NO_BLEND;
-	color_ = rgba { 1, 1, 1, 1 };
+	color_ = { 1, 1, 1, 1 };
 	matrix_ = mat3::identity();
 	matrix_stack_ = std::stack<mat3>();
 }
@@ -227,6 +227,8 @@ void render_queue::flush_queue()
 	}
 
 	do_render(sprite_queue_size_);
+
+	sprite_queue_size_ = 0;
 }
 
 void render_queue::render_sprites(const sprite *const *sprites, int num_sprites)

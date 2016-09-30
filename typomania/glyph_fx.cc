@@ -33,7 +33,7 @@ glyph_fx::draw() const
 
 		const float f = 1 + .2*s*i;
 
-		render::set_color({ c, c, c, 255 });
+		render::set_color({ c, c, c, 1 });
 
 		const float xo = f*.5*gi_->width;
 		const float yo = f*.5*gi_->height;
