@@ -1,0 +1,21 @@
+TODO/FEATURES
+* song background image
+* draw spectrum bars above lyrics
+* transition effect from song menu to game
+* song highscore
+* windows build with ANGLE
+* particles
+
+TODO/REFACTORING
+* get rid of the_game global
+* hide texture cache
+* hide font cache
+
+TODO/CONTENT
+* fix timings for shikinouta
+
+TODO/META
+* README
+
+DONE
+v batch sprites
