@@ -233,49 +233,28 @@ void render_queue::render_sprites(const sprite *const *sprites, int num_sprites)
 {
 	static GLfloat data[SPRITE_QUEUE_CAPACITY*4*6];
 
-	GLfloat *dest = data;
+	struct {
+		GLfloat *dest;
+
+		void operator()(const vec2f& vert, const rgba& color)
+		{
+			*dest++ = vert.x;
+			*dest++ = vert.y;
+
+			*dest++ = color.r;
+			*dest++ = color.g;
+			*dest++ = color.b;
+			*dest++ = color.a;
+		};
+	} add_vertex { data };
+
 	for (int i = 0; i < num_sprites; i++) {
 		auto p = sprites[i];
 
-		// 00
-
-		*dest++ = p->verts.v00.x;
-		*dest++ = p->verts.v00.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 01
-
-		*dest++ = p->verts.v01.x;
-		*dest++ = p->verts.v01.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 11
-
-		*dest++ = p->verts.v11.x;
-		*dest++ = p->verts.v11.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 10
-
-		*dest++ = p->verts.v10.x;
-		*dest++ = p->verts.v10.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
+		add_vertex(p->verts.v00, p->color);
+		add_vertex(p->verts.v01, p->color);
+		add_vertex(p->verts.v11, p->color);
+		add_vertex(p->verts.v10, p->color);
 	}
 
 	glDisable(GL_TEXTURE_2D);
@@ -296,61 +275,31 @@ void render_queue::render_sprites(const gl_texture *tex, const sprite *const *sp
 {
 	static GLfloat data[SPRITE_QUEUE_CAPACITY*4*8];
 
-	GLfloat *dest = data;
+	struct {
+		GLfloat *dest;
+
+		void operator()(const vec2f& vert, const vec2f& texuv, const rgba& color)
+		{
+			*dest++ = vert.x;
+			*dest++ = vert.y;
+
+			*dest++ = texuv.x;
+			*dest++ = texuv.y;
+
+			*dest++ = color.r;
+			*dest++ = color.g;
+			*dest++ = color.b;
+			*dest++ = color.a;
+		}
+	} add_vertex { data };
+
 	for (int i = 0; i < num_sprites; i++) {
 		auto p = sprites[i];
 
-		// 00
-
-		*dest++ = p->verts.v00.x;
-		*dest++ = p->verts.v00.y;
-
-		*dest++ = p->texcoords.v00.x;
-		*dest++ = p->texcoords.v00.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 01
-
-		*dest++ = p->verts.v01.x;
-		*dest++ = p->verts.v01.y;
-
-		*dest++ = p->texcoords.v01.x;
-		*dest++ = p->texcoords.v01.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 11
-
-		*dest++ = p->verts.v11.x;
-		*dest++ = p->verts.v11.y;
-
-		*dest++ = p->texcoords.v11.x;
-		*dest++ = p->texcoords.v11.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
-
-		// 10
-
-		*dest++ = p->verts.v10.x;
-		*dest++ = p->verts.v10.y;
-
-		*dest++ = p->texcoords.v10.x;
-		*dest++ = p->texcoords.v10.y;
-
-		*dest++ = p->color.r;
-		*dest++ = p->color.g;
-		*dest++ = p->color.b;
-		*dest++ = p->color.a;
+		add_vertex(p->verts.v00, p->texcoords.v00, p->color);
+		add_vertex(p->verts.v01, p->texcoords.v01, p->color);
+		add_vertex(p->verts.v11, p->texcoords.v11, p->color);
+		add_vertex(p->verts.v10, p->texcoords.v10, p->color);
 	}
 
 	glEnable(GL_TEXTURE_2D);
