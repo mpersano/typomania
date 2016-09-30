@@ -2,17 +2,15 @@ Huh?
 ----
 A typing game with Japanese songs, inspired on the Flash game Typing Mania 4 (site seems to be down).
 
-Building instructions (Linux) 
------------------------------
-Run fetchstreams.pl under data/ to download some songs from YouTube and convert them to ogg. You'll need jwz's [youtubedown](https://www.jwz.org/hacks/youtubedown) and ffmpeg.
+Building (Linux) 
+----------------
+Run `fetchstreams.pl` under `data/` to download some songs from YouTube and convert them to ogg. You'll need jwz's [youtubedown](https://www.jwz.org/hacks/youtubedown) and ffmpeg.
 
-Add a font with something like:
+Add a font to `data/` with something like:
 
-    pushd data
-    ln -s /usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf ./font.ttf
-    popd data
+    ln -s /usr/share/fonts/truetype/takao-gothic/TakaoGothic.ttf data/font.ttf
 
-Then build it with:
+Build:
 
     mkdir build
     cd build
