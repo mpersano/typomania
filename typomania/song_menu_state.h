@@ -4,7 +4,10 @@
 
 class kashi;
 class menu_item;
-class gl_texture;
+
+namespace gl {
+class texture;
+}
 
 using menu_item_ptr = std::unique_ptr<menu_item>;
 
@@ -40,6 +43,6 @@ private:
 
 	int move_tics_;
 
-	const gl_texture *arrow_texture_;
-	const gl_texture *bg_texture_;
+	const gl::texture *arrow_texture_;
+	const gl::texture *bg_texture_;
 };

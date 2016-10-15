@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 
+#include "noncopyable.h"
 #include "rgba.h"
 #include "vec2.h"
 #include "utf8.h"
@@ -138,7 +139,7 @@ private:
 	const pattern_node *cur_pattern;
 };
 
-class kashi
+class kashi : private noncopyable
 {
 public:
 	kashi();
@@ -168,9 +169,6 @@ private:
 	void init_level();
 
 	serifu_cont serifu_list;
-
-	kashi(const kashi&);
-	kashi& operator=(const kashi&);
 };
 
 using kashi_ptr = std::unique_ptr<kashi>;

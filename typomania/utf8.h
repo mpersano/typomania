@@ -3,7 +3,7 @@
 
 #include <vector>
 
-typedef std::vector<wchar_t> wstring;
+using wstring = std::vector<wchar_t>;
 
 wstring
 utf8_to_wchar(const char *utf8_data);

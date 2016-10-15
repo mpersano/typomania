@@ -1,6 +1,6 @@
 set(DATA_DIR "${CMAKE_CURRENT_BINARY_DIR}/data")
 
-foreach(NAME images lyrics streams)
+foreach(NAME images lyrics streams shaders)
     # can't use directory that will be modified as target, thus .phony
     add_custom_command(
         OUTPUT ${DATA_DIR}/${NAME}/.phony
@@ -41,6 +41,7 @@ add_custom_target(
         ${DATA_DIR}/lyrics/.phony
         ${DATA_DIR}/images/.phony
         ${DATA_DIR}/streams/.phony
+        ${DATA_DIR}/shaders/.phony
         ${FONT_DIR}/tiny_font.fnt ${IMAGE_DIR}/tiny_font.png
         ${FONT_DIR}/small_font.fnt ${IMAGE_DIR}/small_font.png
         ${FONT_DIR}/medium_font.fnt ${IMAGE_DIR}/medium_font.png

@@ -1,5 +1,4 @@
-#ifndef GLYPH_FX_H_
-#define GLYPH_FX_H_
+#pragma once
 
 #include "vec2.h"
 #include "font.h"
@@ -19,11 +18,9 @@ public:
 private:
 	enum { TTL = 30 };
 
-	const gl_texture *texture_;
+	const gl::texture *texture_;
 	const font::glyph *gi_;
 	float x_, y_;
 
 	int tics_;
 };
-
-#endif // GLYPH_FX_H_

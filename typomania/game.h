@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 
+#include "noncopyable.h"
 #include "kashi.h"
 
 class game;
@@ -23,7 +24,7 @@ protected:
 	game *parent_;
 };
 
-class game
+class game : private noncopyable
 {
 public:
 	game(int window_width, int window_height);
@@ -56,9 +57,4 @@ private:
 
 	std::stack<std::unique_ptr<game_state>> state_stack_;
 	std::vector<kashi_ptr> kashi_list_;
-
-	game(const game&);
-	game& operator=(const game&);
 };
-
-typedef std::unique_ptr<game> game_ptr;

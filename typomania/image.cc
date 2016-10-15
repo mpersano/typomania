@@ -37,15 +37,15 @@ image::load(const std::string& path)
 	if (color_type != PNG_COLOR_TYPE_RGBA || bit_depth != 8)
 		panic("invalid color type or bit depth in PNG");
 
-	width = png_get_image_width(png_ptr, info_ptr);
-	height = png_get_image_height(png_ptr, info_ptr);
+	width_ = png_get_image_width(png_ptr, info_ptr);
+	height_ = png_get_image_height(png_ptr, info_ptr);
 
-	bits.resize(width*height);
+	bits_.resize(width_*height_);
 
 	png_bytep *rows = png_get_rows(png_ptr, info_ptr);
 
-	for (int i = 0; i < height; i++)
-		memcpy(&bits[i*width], rows[i], width*sizeof(unsigned));
+	for (int i = 0; i < height_; i++)
+		memcpy(&bits_[i*width_], rows[i], width_*sizeof(unsigned));
 
 	png_destroy_read_struct(&png_ptr, &info_ptr, 0);
 
@@ -59,13 +59,13 @@ image::resize(int new_width, int new_height)
 {
 	std::vector<unsigned> new_bits(new_width*new_height, 0);
 
-	for (int i = 0; i < std::min(height, new_height); i++) {
+	for (int i = 0; i < std::min(height_, new_height); i++) {
 		unsigned *dest = &new_bits[i*new_width];
-		unsigned *src = &bits[i*width];
-		::memcpy(dest, src, std::min(width, new_width)*sizeof(unsigned));
+		unsigned *src = &bits_[i*width_];
+		::memcpy(dest, src, std::min(width_, new_width)*sizeof(unsigned));
 	}
 
-	width = new_width;
-	height = new_height;
-	bits = new_bits;
+	width_ = new_width;
+	height_ = new_height;
+	bits_ = new_bits;
 }

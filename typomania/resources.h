@@ -2,8 +2,8 @@
 
 #include <string>
 
-struct font;
+class font;
 const font *get_font(const std::string& path);
 
-struct gl_texture;
-const gl_texture *get_texture(const std::string& path);
+namespace gl { class texture; }
+const gl::texture *get_texture(const std::string& path);

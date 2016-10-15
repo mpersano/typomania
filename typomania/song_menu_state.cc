@@ -38,7 +38,7 @@ private:
 	const font *small_font_;
 	const font *tiny_font_;
 
-	const gl_texture *border_texture_;
+	const gl::texture *border_texture_;
 };
 
 menu_item::menu_item(int window_width, int window_height, const kashi *song)
@@ -74,13 +74,13 @@ menu_item::render(float pos) const
 
 	render::set_color(bg_color);
 
-	render::add_quad(
+	render::draw_quad(
 			border_texture_,
 			{ { p.x, y0 }, { p.x, y1 }, { p.x + height, y0 }, { p.x + height, y1 } },
 			{ { 0, 0 }, { 0, 1 }, { .9, 0 }, { .9, 1 }  },
 			-10);
 
-	render::add_quad(
+	render::draw_quad(
 		border_texture_,
 		{ { p.x + height, y0 }, { p.x + height, y1 }, { window_width_, y0 }, { window_width_, y1 } },
 		{ { .9, 0 }, { .9, 1 }, { .95, 0 }, { .95, 1 } },
@@ -180,7 +180,7 @@ song_menu_state::draw_background() const
 	const float u = static_cast<float>(bg_texture_->get_image_width())/bg_texture_->get_texture_width();
 	const float v = static_cast<float>(bg_texture_->get_image_height())/bg_texture_->get_texture_height();
 
-	render::add_quad(
+	render::draw_quad(
 			bg_texture_,
 			{ { 0, 0 }, { 0, h }, { w, 0 }, { w, h } },
 			{ { 0, v }, { 0, 0 }, { u, v }, { u, 0 } },
@@ -217,7 +217,7 @@ song_menu_state::redraw() const
 
 		render::set_color({ 1, 1, 1, t });
 
-		render::add_quad(
+		render::draw_quad(
 			arrow_texture_,
 			{ { x, y - .5*h }, { x, y + .5*h }, { x + w, y - .5*h }, { x + w, y + .5*h } },
 			{ { 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 } },

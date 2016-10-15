@@ -1,4 +1,7 @@
 TODO/FEATURES
+* renderer: use shaders
+* better font borders
+* shader program: json file
 * song background image
 * draw spectrum bars above lyrics
 * transition effect from song menu to game
@@ -6,12 +9,9 @@ TODO/FEATURES
 * windows build with ANGLE
 * particles
 
-TODO/REFACTORING
-* hide texture cache
-* hide font cache
-
-TODO/CONTENT
-* fix timings for shikinouta
+CONTENT
+* sugar rush (skip first seconds)
+* nani ka hitotsu
 
 TODO/META
 * README

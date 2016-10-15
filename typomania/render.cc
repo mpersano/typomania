@@ -2,9 +2,11 @@
 #include <algorithm>
 #include <stack>
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include "mat3.h"
+#include "gl_check.h"
+#include "gl_program.h"
 #include "gl_texture.h"
 #include "render.h"
 
@@ -14,17 +16,17 @@ void gl_set_blend_mode(blend_mode mode)
 {
 	switch (mode) {
 		case blend_mode::NO_BLEND:
-			glDisable(GL_BLEND);
+			GL_CHECK(glDisable(GL_BLEND));
 			break;
 
 		case blend_mode::ALPHA_BLEND:
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			GL_CHECK(glEnable(GL_BLEND));
+			GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 			break;
 
 		case blend_mode::ADDITIVE_BLEND:
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
+			GL_CHECK(glEnable(GL_BLEND));
+			GL_CHECK(glBlendFunc(GL_ONE, GL_ONE));
 			break;
 	}
 }
@@ -33,12 +35,12 @@ void gl_set_blend_mode(blend_mode mode)
 
 namespace render {
 
-class render_queue
+class render_queue : private noncopyable
 {
 public:
-	static render_queue& instance();
-
 	render_queue();
+
+	void set_viewport(int width, int height);
 
 	void begin_batch();
 	void end_batch();
@@ -54,22 +56,24 @@ public:
 	void set_blend_mode(blend_mode mode);
 	void set_color(const rgba& color);
 
-	void add_quad(const gl_texture *tex, const quad& verts, const quad& texcoords, float z);
+	void add_quad(const gl::texture *tex, const quad& verts, const quad& texcoords, int layer);
 
 private:
 	struct sprite
 	{
-		float depth;
-		const gl_texture *tex;
+		int layer;
+		const gl::texture *tex;
 		quad verts;
 		quad texcoords;
 		blend_mode blend;
 		rgba color;
 	};
 
+	void init_programs();
+
 	void flush_queue();
 	void render_sprites(const sprite *const *sprites, int num_sprites);
-	void render_sprites(const gl_texture *tex, const sprite *const *sprites, int num_sprites);
+	void render_sprites(const gl::texture *tex, const sprite *const *sprites, int num_sprites);
 
 	static const int SPRITE_QUEUE_CAPACITY = 1024;
 
@@ -80,16 +84,62 @@ private:
 	rgba color_;
 	mat3 matrix_;
 	std::stack<mat3> matrix_stack_;
-};
 
-render_queue& render_queue::instance()
-{
-	static render_queue rq;
-	return rq;
-}
+	std::unique_ptr<gl::program> prog_flat_;
+	std::unique_ptr<gl::program> prog_texture_;
+
+	std::array<GLfloat, 16> proj_matrix_;
+} *g_render_queue;
 
 render_queue::render_queue()
 {
+	init_programs();
+}
+
+void render_queue::init_programs()
+{
+	auto load_program =
+		[](const std::string& vert_source, const std::string& frag_source)
+		{
+			gl::shader vert_shader(GL_VERTEX_SHADER);
+			vert_shader.load_source(vert_source);
+
+			gl::shader frag_shader(GL_FRAGMENT_SHADER);
+			frag_shader.load_source(frag_source);
+
+			std::unique_ptr<gl::program> program(new gl::program);
+			program->attach(vert_shader);
+			program->attach(frag_shader);
+			program->link();
+
+			return program;
+		};
+
+	prog_flat_ = load_program("data/shaders/flat.vert", "data/shaders/flat.frag");
+	prog_texture_ = load_program("data/shaders/sprite.vert", "data/shaders/sprite.frag");
+}
+
+void render_queue::set_viewport(int width, int height)
+{
+	const float Z_NEAR = -1.f;
+	const float Z_FAR = 1.f;
+
+	const float a = 2.f/width;
+	const float b = 2.f/height;
+	const float c = -2.f/(Z_FAR - Z_NEAR);
+
+	const float tz = -(Z_FAR + Z_NEAR)/(Z_FAR - Z_NEAR);
+
+	proj_matrix_ = { a, 0, 0, -1,
+			 0, b, 0, -1,
+			 0, 0, c, tz,
+			 0, 0, 0,  1 };
+
+	prog_flat_->use();
+	prog_flat_->get_uniform("proj_modelview").set_mat4(&proj_matrix_[0]);
+
+	prog_texture_->use();
+	prog_texture_->get_uniform("proj_modelview").set_mat4(&proj_matrix_[0]);
 }
 
 void render_queue::begin_batch()
@@ -143,7 +193,7 @@ void render_queue::set_color(const rgba& color)
 	color_ = color;
 }
 
-void render_queue::add_quad(const gl_texture *tex, const quad& verts, const quad& texcoords, float z)
+void render_queue::add_quad(const gl::texture *tex, const quad& verts, const quad& texcoords, int layer)
 {
 	if (sprite_queue_size_ == SPRITE_QUEUE_CAPACITY)
 		flush_queue();
@@ -159,7 +209,7 @@ void render_queue::add_quad(const gl_texture *tex, const quad& verts, const quad
 
 	p->texcoords = texcoords;
 
-	p->depth = z;
+	p->layer = layer;
 
 	p->blend = blend_mode_;
 	p->color = color_;
@@ -180,8 +230,8 @@ void render_queue::flush_queue()
 		&sorted_sprites[sprite_queue_size_],
 		[](const sprite *s0, const sprite *s1)
 		{
-			if (s0->depth != s1->depth) {
-				return s0->depth < s1->depth;
+			if (s0->layer != s1->layer) {
+				return s0->layer < s1->layer;
 			} else if (s0->blend != s1->blend) {
 				return static_cast<int>(s0->blend) < static_cast<int>(s1->blend);
 			} else {
@@ -192,7 +242,7 @@ void render_queue::flush_queue()
 	blend_mode cur_blend_mode = sorted_sprites[0]->blend;
 	gl_set_blend_mode(cur_blend_mode);
 
-	const gl_texture *cur_texture = sorted_sprites[0]->tex;
+	const gl::texture *cur_texture = sorted_sprites[0]->tex;
 
 	int batch_start = 0;
 
@@ -259,21 +309,21 @@ void render_queue::render_sprites(const sprite *const *sprites, int num_sprites)
 		add_vertex(p->verts.v10, p->color);
 	}
 
-	glDisable(GL_TEXTURE_2D);
+	prog_flat_->use();
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+	GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6*sizeof(GLfloat), &data[0]));
+	GL_CHECK(glEnableVertexAttribArray(0));
 
-	glVertexPointer(2, GL_FLOAT, 6*sizeof(GLfloat), &data[0]);
-	glColorPointer(4, GL_FLOAT, 6*sizeof(GLfloat), &data[2]);
+	GL_CHECK(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6*sizeof(GLfloat), &data[2]));
+	GL_CHECK(glEnableVertexAttribArray(1));
 
-	glDrawArrays(GL_QUADS, 0, 4*num_sprites);
+	GL_CHECK(glDrawArrays(GL_QUADS, 0, 4*num_sprites));
 
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	GL_CHECK(glDisableVertexAttribArray(1));
+	GL_CHECK(glDisableVertexAttribArray(0));
 }
 
-void render_queue::render_sprites(const gl_texture *tex, const sprite *const *sprites, int num_sprites)
+void render_queue::render_sprites(const gl::texture *tex, const sprite *const *sprites, int num_sprites)
 {
 	static GLfloat data[SPRITE_QUEUE_CAPACITY*4*8];
 
@@ -304,92 +354,104 @@ void render_queue::render_sprites(const gl_texture *tex, const sprite *const *sp
 		add_vertex(p->verts.v10, p->texcoords.v10, p->color);
 	}
 
-	glEnable(GL_TEXTURE_2D);
 	tex->bind();
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+	prog_texture_->use();
 
-	glVertexPointer(2, GL_FLOAT, 8*sizeof(GLfloat), &data[0]);
-	glTexCoordPointer(2, GL_FLOAT, 8*sizeof(GLfloat), &data[2]);
-	glColorPointer(4, GL_FLOAT, 8*sizeof(GLfloat), &data[4]);
+	GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), &data[0]));
+	GL_CHECK(glEnableVertexAttribArray(0));
 
-	glDrawArrays(GL_QUADS, 0, 4*num_sprites);
+	GL_CHECK(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), &data[2]));
+	GL_CHECK(glEnableVertexAttribArray(1));
 
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	GL_CHECK(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8*sizeof(GLfloat), &data[4]));
+	GL_CHECK(glEnableVertexAttribArray(2));
+
+	GL_CHECK(glDrawArrays(GL_QUADS, 0, 4*num_sprites));
+
+	GL_CHECK(glDisableVertexAttribArray(2));
+	GL_CHECK(glDisableVertexAttribArray(1));
+	GL_CHECK(glDisableVertexAttribArray(0));
+}
+
+void init()
+{
+	g_render_queue = new render_queue;
+}
+
+void set_viewport(int width, int height)
+{
+	g_render_queue->set_viewport(width, height);
 }
 
 void begin_batch()
 {
-	render_queue::instance().begin_batch();
+	g_render_queue->begin_batch();
 }
 
 void end_batch()
 {
-	render_queue::instance().end_batch();
+	g_render_queue->end_batch();
 }
 
 void push_matrix()
 {
-	render_queue::instance().push_matrix();
+	g_render_queue->push_matrix();
 }
 
 void pop_matrix()
 {
-	render_queue::instance().pop_matrix();
+	g_render_queue->pop_matrix();
 }
 
 void translate(const vec2f& p)
 {
-	render_queue::instance().translate(p);
+	g_render_queue->translate(p);
 }
 
 void translate(float x, float y)
 {
-	render_queue::instance().translate({ x, y });
+	g_render_queue->translate({ x, y });
 }
 
 void scale(const vec2f& s)
 {
-	render_queue::instance().scale(s);
+	g_render_queue->scale(s);
 }
 
 void scale(float s)
 {
-	render_queue::instance().scale({ s, s });
+	g_render_queue->scale({ s, s });
 }
 
 void scale(float sx, float sy)
 {
-	render_queue::instance().scale({ sx, sy });
+	g_render_queue->scale({ sx, sy });
 }
 
 void rotate(float a)
 {
-	render_queue::instance().rotate(a);
+	g_render_queue->rotate(a);
 }
 
 void set_blend_mode(blend_mode mode)
 {
-	render_queue::instance().set_blend_mode(mode);
+	g_render_queue->set_blend_mode(mode);
 }
 
 void set_color(const rgba& color)
 {
-	render_queue::instance().set_color(color);
+	g_render_queue->set_color(color);
 }
 
-void add_quad(const quad& verts, float z)
+void draw_quad(const quad& verts, int layer)
 {
-	render_queue::instance().add_quad(nullptr, verts, { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } }, z);
+	g_render_queue->add_quad(nullptr, verts, { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } }, layer);
 }
 
-void add_quad(const gl_texture *tex, const quad& verts, const quad& texcoords, float z)
+void draw_quad(const gl::texture *tex, const quad& verts, const quad& texcoords, int layer)
 {
-	render_queue::instance().add_quad(tex, verts, texcoords, z);
+	g_render_queue->add_quad(tex, verts, texcoords, layer);
 }
 
 }

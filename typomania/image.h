@@ -1,38 +1,35 @@
-#ifndef IMAGE_H_
-#define IMAGE_H_
+#pragma once
 
 #include <vector>
 #include <string>
 
-class image {
+#include "noncopyable.h"
+
+class image : private noncopyable
+{
 public:
 	image()
-	: width(0), height(0)
+	: width_(0), height_(0)
 	{ }
 
 	image(int width, int height)
-	: width(width), height(height), bits(width*height)
+	: width_(width), height_(height), bits_(width*height)
 	{ }
 
 	bool load(const std::string& path);
 
 	int get_width() const
-	{ return width; }
+	{ return width_; }
 
 	int get_height() const
-	{ return height; }
+	{ return height_; }
 
 	const unsigned *get_bits() const
-	{ return &bits[0]; }
+	{ return &bits_[0]; }
 
 	void resize(int new_width, int new_height);
 
 private:
-	int width, height;
-	std::vector<unsigned> bits;
-
-	image(const image&); // disable copy ctor
-	image& operator=(const image&); // disable assignment
+	int width_, height_;
+	std::vector<unsigned> bits_;
 };
-
-#endif // IMAGE_H_

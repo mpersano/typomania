@@ -38,7 +38,7 @@ glyph_fx::draw() const
 		const float xo = f*.5*gi_->width;
 		const float yo = f*.5*gi_->height;
 
-		render::add_quad(
+		render::draw_quad(
 			texture_,
 			{ { x_ - xo, y_ + yo }, { x_ - xo, y_ - yo }, { x_ + xo, y_ + yo }, { x_ + xo, y_ - yo } },
 			{ t0, t3, t1, t2 },

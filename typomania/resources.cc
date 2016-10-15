@@ -1,4 +1,3 @@
-#include "gl_texture.h"
 #include <cstdio>
 
 #include <string>
@@ -8,6 +7,7 @@
 #include "panic.h"
 
 #include "font.h"
+#include "gl_texture.h"
 #include "resources.h"
 
 template <typename T>
@@ -42,8 +42,8 @@ const font *get_font(const std::string& path)
 	return cache[path];
 }
 
-const gl_texture *get_texture(const std::string& path)
+const gl::texture *get_texture(const std::string& path)
 {
-	static resource_cache<gl_texture> cache;
+	static resource_cache<gl::texture> cache;
 	return cache[path];
 }

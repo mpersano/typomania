@@ -3,31 +3,36 @@
 #include <GL/gl.h>
 #include <string>
 
-class gl_texture
+#include "noncopyable.h"
+
+namespace gl {
+
+class texture : private noncopyable
 {
 public:
-	gl_texture();
-	~gl_texture();
+	texture();
+	~texture();
 
 	bool load(const std::string& path);
 
 	int get_image_width() const
-	{ return image_width; }
+	{ return image_width_; }
 
 	int get_image_height() const
-	{ return image_height; }
+	{ return image_height_; }
 
 	int get_texture_width() const
-	{ return texture_width; }
+	{ return texture_width_; }
 
 	int get_texture_height() const
-	{ return texture_height; }
+	{ return texture_height_; }
 
 	void bind() const;
 
 private:
-	int image_width, image_height;
-	int texture_width, texture_height;
-
-	GLuint texture_id;
+	int image_width_, image_height_;
+	int texture_width_, texture_height_;
+	GLuint id_;
 };
+
+} // gl

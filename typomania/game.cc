@@ -2,7 +2,7 @@
 #include <cstring>
 #include <cerrno>
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include <sstream>
 #include <algorithm>
@@ -55,12 +55,7 @@ game::redraw() const
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, window_width_, 0, window_height_, -1, 1);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	render::set_viewport(window_width_, window_height_);
 
 	render::begin_batch();
 

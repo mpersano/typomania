@@ -99,7 +99,7 @@ spectrum_bars::render_spectrum_bars(const float *samples, int num_samples, float
 
 		const float u = w/height;
 
-		render::add_quad(
+		render::draw_quad(
 			bar_texture,
 			{ { x, 0 }, { x, w }, { x + dx - 1, 0 }, { x + dx - 1, w } },
 			{ { 0, 0 }, { 0, u }, { 1, 0 }, { 1, u } },

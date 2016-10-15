@@ -9,12 +9,13 @@
 
 #include <SDL.h>
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 #include <AL/alc.h>
 #include <AL/al.h>
 
 #include "panic.h"
+#include "render.h"
 #include "common.h"
 #include "game.h"
 
@@ -50,6 +51,8 @@ game_app::game_app(int window_width, int window_height)
 	init_sdl(window_width, window_height);
 	init_openal();
 
+	render::init();
+
 	game_.reset(new game(window_width, window_height));
 }
 
@@ -71,6 +74,9 @@ game_app::init_sdl(int window_width, int window_height)
 		panic("SDL_SetVideoMode: %s", SDL_GetError());
 
 	SDL_WM_SetCaption("typomania", nullptr);
+
+	if (GLenum rv = glewInit())
+		panic("glewInit: %s", glewGetErrorString(rv));
 }
 
 void

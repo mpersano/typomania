@@ -431,12 +431,12 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
 
 	render::set_color({ 1, 1, 1, alpha });
-	render::add_quad(
+	render::draw_quad(
 			{ { x0, y0 }, { x0, y1 }, { xm, y0 }, { xm, y1 } },
 			0);
 
 	render::set_color({ .5, .5, .5, alpha });
-	render::add_quad(
+	render::draw_quad(
 			{ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } },
 			0);
 }
@@ -508,7 +508,7 @@ in_game_state::draw_serifu(float alpha) const
 		}
 	}
 
-	const float base_x = 100;
+	const float base_x = 20;
 	const float base_y = 70;
 
 	if (serifu) {

@@ -3,7 +3,9 @@
 
 #include "ogg_player.h"
 
-class gl_texture;
+namespace gl {
+class texture;
+}
 
 class spectrum_bars {
 public:
@@ -30,7 +32,7 @@ private:
 	int base_x, base_y, width, height;
 	int num_bands;
 
-	const gl_texture *bar_texture;
+	const gl::texture *bar_texture;
 };
 
 #endif // SPECTRUM_BARS_H_
