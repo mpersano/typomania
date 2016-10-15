@@ -7,28 +7,16 @@
 
 namespace gl {
 
-class shader : private noncopyable
-{
-public:
-	shader(GLenum type);
-
-	void set_source(const std::string& source);
-	void load_source(const std::string& filename);
-
-private:
-	friend class program;
-	GLuint id_;
-};
+class shader;
 
 class program : private noncopyable
 {
 public:
 	program();
 
-	void attach(const shader& s);
-	void link();
+	bool load(const std::string& path);
 
-	void use();
+	void use() const;
 
 	class uniform
 	{
@@ -51,9 +39,12 @@ public:
 		GLint location_;
 	};
 
-	uniform get_uniform(const std::string& name);
+	uniform get_uniform(const std::string& name) const;
 
 private:
+	void attach(const shader& s);
+	void link();
+
 	GLuint id_;
 };
 

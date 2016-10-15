@@ -4,6 +4,8 @@
 
 #include <GL/glew.h>
 
+#include <json/json.h>
+
 #include "panic.h"
 #include "gl_program.h"
 #include "gl_check.h"
@@ -13,6 +15,19 @@ namespace gl {
 //
 //   s h a d e r
 //
+
+class shader : private noncopyable
+{
+public:
+	shader(GLenum type);
+
+	void set_source(const std::string& source);
+	void load_source(const std::string& path);
+
+private:
+	friend class program;
+	GLuint id_;
+};
 
 shader::shader(GLenum type)
 	: id_ { GL_CHECK_R(glCreateShader(type)) }
@@ -38,11 +53,16 @@ shader::set_source(const std::string& source)
 }
 
 void
-shader::load_source(const std::string& filename)
+shader::load_source(const std::string& path)
 {
-	std::ifstream file(filename);
+	std::ifstream file(path);
+	if (!file) {
+		panic("failed to open %s", path.c_str());
+	}
+
 	std::stringstream buffer;
 	buffer << file.rdbuf();
+
 	set_source(buffer.str());
 }
 
@@ -53,6 +73,30 @@ shader::load_source(const std::string& filename)
 program::program()
 	: id_ { GL_CHECK_R(glCreateProgram()) }
 { }
+
+bool
+program::load(const std::string& path)
+{
+	std::ifstream file(path);
+	if (!file)
+		return false;
+
+	Json::Value root;
+	file >> root;
+
+	gl::shader vert_shader(GL_VERTEX_SHADER);
+	vert_shader.load_source(root["vs"].asString());
+
+	gl::shader frag_shader(GL_FRAGMENT_SHADER);
+	frag_shader.load_source(root["fs"].asString());
+
+	attach(vert_shader);
+	attach(frag_shader);
+
+	link();
+
+	return true;
+}
 
 void
 program::attach(const shader& s)
@@ -72,13 +116,13 @@ program::link()
 }
 
 void
-program::use()
+program::use() const
 {
 	GL_CHECK(glUseProgram(id_));
 }
 
 program::uniform
-program::get_uniform(const std::string& name)
+program::get_uniform(const std::string& name) const
 {
 	GLint location = GL_CHECK_R(glGetUniformLocation(id_, name.c_str()));
 	if (location < 0)

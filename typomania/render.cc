@@ -4,6 +4,7 @@
 
 #include <GL/glew.h>
 
+#include "resources.h"
 #include "mat3.h"
 #include "gl_check.h"
 #include "gl_program.h"
@@ -85,8 +86,8 @@ private:
 	mat3 matrix_;
 	std::stack<mat3> matrix_stack_;
 
-	std::unique_ptr<gl::program> prog_flat_;
-	std::unique_ptr<gl::program> prog_texture_;
+	const gl::program *prog_flat_;
+	const gl::program *prog_texture_;
 
 	std::array<GLfloat, 16> proj_matrix_;
 } *g_render_queue;
@@ -98,25 +99,8 @@ render_queue::render_queue()
 
 void render_queue::init_programs()
 {
-	auto load_program =
-		[](const std::string& vert_source, const std::string& frag_source)
-		{
-			gl::shader vert_shader(GL_VERTEX_SHADER);
-			vert_shader.load_source(vert_source);
-
-			gl::shader frag_shader(GL_FRAGMENT_SHADER);
-			frag_shader.load_source(frag_source);
-
-			std::unique_ptr<gl::program> program(new gl::program);
-			program->attach(vert_shader);
-			program->attach(frag_shader);
-			program->link();
-
-			return program;
-		};
-
-	prog_flat_ = load_program("data/shaders/flat.vert", "data/shaders/flat.frag");
-	prog_texture_ = load_program("data/shaders/sprite.vert", "data/shaders/sprite.frag");
+	prog_flat_ = get_program("data/shaders/flat.prog");
+	prog_texture_ = get_program("data/shaders/sprite.prog");
 }
 
 void render_queue::set_viewport(int width, int height)

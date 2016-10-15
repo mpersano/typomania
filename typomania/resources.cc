@@ -8,6 +8,7 @@
 
 #include "font.h"
 #include "gl_texture.h"
+#include "gl_program.h"
 #include "resources.h"
 
 template <typename T>
@@ -45,5 +46,11 @@ const font *get_font(const std::string& path)
 const gl::texture *get_texture(const std::string& path)
 {
 	static resource_cache<gl::texture> cache;
+	return cache[path];
+}
+
+const gl::program *get_program(const std::string& path)
+{
+	static resource_cache<gl::program> cache;
 	return cache[path];
 }
