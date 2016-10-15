@@ -121,18 +121,12 @@ void render_queue::init_programs()
 
 void render_queue::set_viewport(int width, int height)
 {
-	const float Z_NEAR = -1.f;
-	const float Z_FAR = 1.f;
-
 	const float a = 2.f/width;
 	const float b = 2.f/height;
-	const float c = -2.f/(Z_FAR - Z_NEAR);
-
-	const float tz = -(Z_FAR + Z_NEAR)/(Z_FAR - Z_NEAR);
 
 	proj_matrix_ = { a, 0, 0, -1,
 			 0, b, 0, -1,
-			 0, 0, c, tz,
+			 0, 0, 0,  0,
 			 0, 0, 0,  1 };
 
 	prog_flat_->use();
