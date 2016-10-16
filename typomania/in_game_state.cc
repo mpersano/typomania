@@ -187,7 +187,7 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , cur_state(PLAYING)
 , state_tics(0)
 #ifndef MUTE
-, spectrum(player, 100, 50, 800, 128, 64)
+, spectrum(player, 16, 200, 48)
 #endif
 , cur_serifu(cur_kashi.begin())
 , total_ms(0)
@@ -262,8 +262,11 @@ in_game_state::draw_hud(float alpha) const
 	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
 #ifndef MUTE
+	render::push_matrix();
+	render::translate(22, 60);
 	render::set_color({ 1, 1, 1, .2f*alpha });
 	spectrum.draw();
+	render::pop_matrix();
 #endif
 
 	draw_time_bars(alpha);

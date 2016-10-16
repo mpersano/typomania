@@ -8,9 +8,9 @@
 #include "gl_texture.h"
 #include "spectrum_bars.h"
 
-spectrum_bars::spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bands)
+spectrum_bars::spectrum_bars(const ogg_player& player, int w, int h, int num_bands)
 : player(player)
-, base_x(x), base_y(y), width(w), height(h), num_bands(num_bands)
+, bar_width(w), max_height(h), num_bands(num_bands)
 , bar_texture(get_texture("data/images/spectrum-bar.png"))
 { }
 
@@ -23,10 +23,7 @@ spectrum_bars::update(unsigned cur_ms)
 void
 spectrum_bars::draw() const
 {
-	render::push_matrix();
-	render::translate(base_x, base_y);
-	render_spectrum_bars(spectrum_window, WINDOW_SIZE/4, 4.*height);
-	render::pop_matrix();
+	render_spectrum_bars(spectrum_window, WINDOW_SIZE/4, 4.*max_height);
 }
 
 void
@@ -80,31 +77,48 @@ void
 spectrum_bars::render_spectrum_bars(const float *samples, int num_samples, float scale) const
 {
 	const int samples_per_band = num_samples/num_bands;
-	const int dx = width/num_bands;
 
 	int x = 0;
 
 	for (int i = 0; i < num_bands; i++) {
-		float w = 0;
+		int s0 = i*samples_per_band;
+		int s1 = std::min(s0 + samples_per_band, num_samples);
 
-		for (int j = 0; j < samples_per_band; j++)
-			w += samples[i*samples_per_band + j];
+		float h = 0;
 
-		w /= samples_per_band;
+		for (int j = s0; j < s1; j++)
+			h += samples[j];
 
-		w = sqrt(w)*scale;
+		h /= samples_per_band;
 
-		if (w > height)
-			w = height;
+		h = sqrt(h)*scale;
 
-		const float u = w/height;
+		if (h > max_height)
+			h = max_height;
+
+		const float y0 = -.5f*bar_width;
+		const float y1 = 0.f;
+		const float y2 = h;
+		const float y3 = h + .5f*bar_width;
 
 		render::draw_quad(
 			bar_texture,
-			{ { x, 0 }, { x, w }, { x + dx - 1, 0 }, { x + dx - 1, w } },
-			{ { 0, 0 }, { 0, u }, { 1, 0 }, { 1, u } },
+			{ { x, y0 }, { x, y1 }, { x + bar_width, y0 }, { x + bar_width, y1 } },
+			{ { 0, 0 }, { 0, .5f }, { 1, 0 }, { 1, .5f } },
 			-10);
 
-		x += dx;
+		render::draw_quad(
+			bar_texture,
+			{ { x, y1 }, { x, y2 }, { x + bar_width, y1 }, { x + bar_width, y2 } },
+			{ { 0, .5f }, { 0, .5f }, { 1, .5f }, { 1, .5f } },
+			-10);
+
+		render::draw_quad(
+			bar_texture,
+			{ { x, y2 }, { x, y3 }, { x + bar_width, y2 }, { x + bar_width, y3 } },
+			{ { 0, .5f }, { 0, 1 }, { 1, .5f }, { 1, 1 } },
+			-10);
+
+		x += bar_width;
 	}
 }

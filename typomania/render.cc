@@ -118,6 +118,7 @@ void render_queue::set_viewport(int width, int height)
 
 	prog_texture_->use();
 	prog_texture_->get_uniform("proj_modelview").set_mat4(&proj_matrix_[0]);
+	prog_texture_->get_uniform("tex").set_i(0);
 }
 
 void render_queue::begin_batch()

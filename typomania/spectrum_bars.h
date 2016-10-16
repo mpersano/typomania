@@ -9,7 +9,7 @@ class texture;
 
 class spectrum_bars {
 public:
-	spectrum_bars(const ogg_player& player, int x, int y, int w, int h, int num_bars);
+	spectrum_bars(const ogg_player& player, int w, int h, int num_bars);
 
 	void update(unsigned cur_ms);
 	void draw() const;
@@ -29,7 +29,8 @@ private:
 
 	const ogg_player& player;
 
-	int base_x, base_y, width, height;
+	int bar_width;
+	int max_height;
 	int num_bands;
 
 	const gl::texture *bar_texture;
