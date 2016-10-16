@@ -7,6 +7,7 @@ class menu_item;
 
 namespace gl {
 class texture;
+class program;
 }
 
 using menu_item_ptr = std::unique_ptr<menu_item>;
@@ -31,6 +32,7 @@ private:
 		IDLE,
 		MOVING_UP,
 		MOVING_DOWN,
+		OUTRO,
 	};
 
 	void set_cur_state(state s);
@@ -45,4 +47,5 @@ private:
 
 	const gl::texture *arrow_texture_;
 	const gl::texture *bg_texture_;
+	const gl::program *bg_transition_program_;
 };

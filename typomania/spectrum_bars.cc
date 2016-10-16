@@ -12,7 +12,9 @@ spectrum_bars::spectrum_bars(const ogg_player& player, int w, int h, int num_ban
 : player(player)
 , bar_width(w), max_height(h), num_bands(num_bands)
 , bar_texture(get_texture("data/images/spectrum-bar.png"))
-{ }
+{
+	std::fill(std::begin(spectrum_window), std::end(spectrum_window), 0.f);
+}
 
 void
 spectrum_bars::update(unsigned cur_ms)

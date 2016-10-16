@@ -24,6 +24,7 @@ enum {
 	MISS_SCORE = 601,
 	HIT_SCORE = 311,
 
+	FADE_IN_TICS = 60,
 	FADE_OUT_TICS = 60,
 	RESULTS_START_TIC = 120,
 };
@@ -184,7 +185,7 @@ static kana_buffer input_buffer;
 in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 : game_state(parent)
 , cur_kashi(cur_kashi)
-, cur_state(PLAYING)
+, cur_state(INTRO)
 , state_tics(0)
 #ifndef MUTE
 , spectrum(player, 16, 200, 48)
@@ -202,12 +203,8 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , small_font(get_font("data/fonts/small_font.fnt"))
 , medium_font(get_font("data/fonts/medium_font.fnt"))
 , big_az_font(get_font("data/fonts/big_az_font.fnt"))
-, bg_texture_(nullptr)
 , bg_overlay_texture_(get_texture("data/images/bg-overlay.png"))
 {
-	if (!cur_kashi.background.empty())
-		bg_texture_ = get_texture(cur_kashi.background);
-
 	glyph_fxs_reset();
 
 	std::ostringstream path;
@@ -219,14 +216,9 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 	song_duration = static_cast<int>(player.get_track_duration()*1000);
 
 	player.set_gain(1.);
-	player.start();
-
-	spectrum.update(0);
 #endif
 
 	set_cur_serifu(cur_serifu->get(), cur_serifu + 1 == cur_kashi.end());
-
-	start_ms = start_serifu_ms = SDL_GetTicks();
 }
 
 in_game_state::~in_game_state()
@@ -235,16 +227,25 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	draw_background();
-
-	draw_song_info();
-
 	switch (cur_state) {
+		case INTRO:
+			{
+			float alpha = static_cast<float>(state_tics)/FADE_IN_TICS;
+			draw_background(alpha);
+			draw_song_info(alpha);
+			draw_hud(alpha);
+			}
+			break;
+
 		case PLAYING:
+			draw_background(1);
+			draw_song_info(1);
 			draw_hud(1);
 			break;
 
 		case OUTRO:
+			draw_background(1);
+			draw_song_info(1);
 			if (state_tics < FADE_OUT_TICS)
 				draw_hud(1. - static_cast<float>(state_tics)/FADE_OUT_TICS);
 			else if (state_tics >= RESULTS_START_TIC)
@@ -264,7 +265,7 @@ in_game_state::draw_hud(float alpha) const
 #ifndef MUTE
 	render::push_matrix();
 	render::translate(22, 60);
-	render::set_color({ 1, 1, 1, .2f*alpha });
+	render::set_color({ 1, 1, 1, .1f*alpha });
 	spectrum.draw();
 	render::pop_matrix();
 #endif
@@ -281,6 +282,17 @@ void
 in_game_state::update()
 {
 	++state_tics;
+
+	if (cur_state == INTRO) {
+		if (state_tics == FADE_IN_TICS) {
+			player.start();
+			spectrum.update(0);
+			start_ms = start_serifu_ms = SDL_GetTicks();
+			set_state(PLAYING);
+		}
+
+		return;
+	}
 
 	if (cur_state == OUTRO && state_tics == FADE_OUT_TICS) {
 		if (cur_serifu != cur_kashi.end()) {
@@ -659,13 +671,13 @@ in_game_state::get_class() const
 }
 
 void
-in_game_state::draw_background() const
+in_game_state::draw_background(float alpha) const
 {
-	if (bg_texture_) {
-		render::set_color({ 1, 1, 1, 1 });
+	if (cur_kashi.background) {
+		render::set_color({ 1, 1, 1, alpha });
 
 		render::set_blend_mode(blend_mode::NO_BLEND);
-		render::draw_quad(bg_texture_, { 0, 0 }, -30);
+		render::draw_quad(cur_kashi.background, { 0, 0 }, -30);
 
 		render::set_blend_mode(blend_mode::ALPHA_BLEND);
 		render::draw_quad(bg_overlay_texture_, { 0, 0 }, -30);
@@ -673,10 +685,10 @@ in_game_state::draw_background() const
 }
 
 void
-in_game_state::draw_song_info() const
+in_game_state::draw_song_info(float alpha) const
 {
 	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-	render::set_color({ 1, 1, 1, 1 });
+	render::set_color({ 1, 1, 1, alpha });
 
 	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
 	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);

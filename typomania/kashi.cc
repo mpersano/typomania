@@ -36,6 +36,7 @@ split(char *str, const char *delim)
 }
 
 kashi::kashi()
+	: background(nullptr)
 { }
 
 kashi::~kashi()
@@ -70,7 +71,7 @@ kashi::load(const char *path)
 	stream = tokens[3];
 
 	if (tokens.size() > 4)
-		background = tokens[4];
+		background = get_texture(tokens[4]);
 
 	while (fgets(line, sizeof(line), in)) {
 		std::vector<char *> tokens = split(line, "\t\n");

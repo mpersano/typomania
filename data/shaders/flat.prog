@@ -1,0 +1,4 @@
+{
+	"vs": "data/shaders/flat.vert",
+	"fs": "data/shaders/flat.frag"
+}

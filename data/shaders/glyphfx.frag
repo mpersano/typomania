@@ -11,6 +11,6 @@ out vec4 out_color;
 
 void main(void)
 {
-	vec4 c = texture(tex, frag_texcood);
+	vec4 c = texture(tex, frag_texcoord);
 	out_color = c.a*frag_color;
 }

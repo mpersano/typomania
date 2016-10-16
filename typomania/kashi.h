@@ -12,6 +12,10 @@
 struct font;
 struct glyph_fx;
 
+namespace gl {
+class texture;
+}
+
 using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
 
 struct serifu_part
@@ -164,7 +168,7 @@ public:
 	int level;
 
 	std::string stream;
-	std::string background;
+	const gl::texture *background;
 
 private:
 	void init_level();

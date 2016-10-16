@@ -22,8 +22,8 @@ public:
 private:
 	void set_cur_serifu(const serifu *s, bool is_last);
 
-	void draw_background() const;
-	void draw_song_info() const;
+	void draw_background(float alpha) const;
+	void draw_song_info(float alpha) const;
 
 	void draw_hud(float alpha) const;
 	void draw_time_bars(float alpha) const;
@@ -43,6 +43,7 @@ private:
 	const kashi& cur_kashi;
 
 	enum state {
+		INTRO,
 		PLAYING,
 		OUTRO,
 	};
@@ -75,6 +76,5 @@ private:
 	const font *medium_font;
 	const font *big_az_font;
 
-	const gl::texture *bg_texture_;
 	const gl::texture *bg_overlay_texture_;
 };

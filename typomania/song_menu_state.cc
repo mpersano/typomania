@@ -5,6 +5,7 @@
 #include "rgba.h"
 #include "kashi.h"
 #include "font.h"
+#include "gl_program.h"
 #include "song_menu_state.h"
 
 namespace {
@@ -12,6 +13,8 @@ namespace {
 static const int START_MOVE_TICS = 40;
 static const int FAST_MOVE_TICS = 10;
 static const int ARROW_ANIMATION_TICS = 20;
+static const int OUTRO_TICS = 120;
+static const int MENU_FADE_OUT_TICS = 60;
 
 };
 
@@ -20,7 +23,7 @@ class menu_item
 public:
 	menu_item(int window_width, int window_height, const kashi *song);
 
-	void render(float pos) const;
+	void render(float pos, float alpha) const;
 
 	const kashi *get_song() const
 	{ return song_; }
@@ -52,7 +55,7 @@ menu_item::menu_item(int window_width, int window_height, const kashi *song)
 }
 
 void
-menu_item::render(float pos) const
+menu_item::render(float pos, float alpha) const
 {
 	const vec2f p = get_position(pos);
 
@@ -72,7 +75,7 @@ menu_item::render(float pos) const
 
 	rgba bg_color = get_color(pos);
 
-	render::set_color(bg_color);
+	render::set_color({ bg_color.r, bg_color.g, bg_color.b, bg_color.a*alpha });
 
 	render::draw_quad(
 			border_texture_,
@@ -88,7 +91,7 @@ menu_item::render(float pos) const
 
 	// draw text
 
-	render::set_color({ 0, 0, .25, bg_color.a });
+	render::set_color({ 0, 0, .25, bg_color.a*alpha });
 
 	render::push_matrix();
 
@@ -159,9 +162,14 @@ song_menu_state::song_menu_state(game *parent, const std::vector<kashi_ptr>& kas
 	, cur_displayed_position_(0)
 	, arrow_texture_(get_texture("data/images/arrow.png"))
 	, bg_texture_(get_texture("data/images/menu-background.png"))
+	, bg_transition_program_(get_program("data/shaders/transition.prog"))
 {
 	for (auto& p : kashi_list)
 		item_list_.emplace_back(new menu_item(parent_->get_window_width(), parent_->get_window_height(), p.get()));
+
+	bg_transition_program_->use();
+	bg_transition_program_->get_uniform("resolution").set_f(parent_->get_window_width(), parent_->get_window_height());
+	bg_transition_program_->get_uniform("tex").set_i(0);
 }
 
 song_menu_state::~song_menu_state()
@@ -174,6 +182,17 @@ song_menu_state::draw_background() const
 	render::set_blend_mode(blend_mode::NO_BLEND);
 	render::set_color({ 1, 1, 1, 1 });
 	render::draw_quad(bg_texture_, { 0, 0 }, -20);
+
+	if (cur_state_ == state::OUTRO) {
+		auto kashi = item_list_[cur_selection_]->get_song();
+
+		if (kashi->background) {
+			float t = static_cast<float>(state_tics_)/OUTRO_TICS;
+			render::set_blend_mode(blend_mode::ALPHA_BLEND);
+			render::set_color({ 1, 1, 1, t });
+			render::draw_quad(bg_transition_program_, kashi->background, { 0, 0 }, -20);
+		}
+	}
 }
 
 void
@@ -188,8 +207,19 @@ song_menu_state::redraw() const
 
 	float pos = -cur_displayed_position_ + from;
 
+	float alpha;
+
+	if (cur_state_ == state::OUTRO) {
+		if (state_tics_ < MENU_FADE_OUT_TICS)
+			alpha = 1. - static_cast<float>(state_tics_)/MENU_FADE_OUT_TICS;
+		else
+			alpha = 0;
+	} else {
+		alpha = 1;
+	}
+
 	for (int i = from; i <= to; i++) {
-		item_list_[i]->render(pos);
+		item_list_[i]->render(pos, alpha);
 		++pos;
 	}
 
@@ -250,6 +280,13 @@ song_menu_state::update()
 			}
 			break;
 
+		case state::OUTRO:
+			if (state_tics_ == OUTRO_TICS) {
+				set_cur_state(state::IDLE);
+				parent_->enter_in_game_state(*item_list_[cur_selection_]->get_song());
+			}
+			break;
+
 		default:
 			break;
 	}
@@ -258,7 +295,8 @@ song_menu_state::update()
 void
 song_menu_state::on_key_up(int keysym)
 {
-	set_cur_state(state::IDLE);
+	if (cur_state_ != state::OUTRO)
+		set_cur_state(state::IDLE);
 }
 
 void
@@ -266,24 +304,28 @@ song_menu_state::on_key_down(int keysym)
 {
 	switch (keysym) {
 		case SDLK_UP:
-			if (cur_selection_ > 0) {
-				--cur_selection_;
-				move_tics_ = START_MOVE_TICS;
-				set_cur_state(state::MOVING_UP);
+			if (cur_state_ != state::OUTRO) {
+				if (cur_selection_ > 0) {
+					--cur_selection_;
+					move_tics_ = START_MOVE_TICS;
+					set_cur_state(state::MOVING_UP);
+				}
 			}
 			break;
 
 		case SDLK_DOWN:
-			if (cur_selection_ < static_cast<int>(item_list_.size()) - 1) {
-				++cur_selection_;
-				move_tics_ = START_MOVE_TICS;
-				set_cur_state(state::MOVING_DOWN);
+			if (cur_state_ != state::OUTRO) {
+				if (cur_selection_ < static_cast<int>(item_list_.size()) - 1) {
+					++cur_selection_;
+					move_tics_ = START_MOVE_TICS;
+					set_cur_state(state::MOVING_DOWN);
+				}
 			}
 			break;
 
 		case SDLK_RETURN:
 			if (cur_state_ == state::IDLE)
-				parent_->enter_in_game_state(*item_list_[cur_selection_]->get_song());
+				set_cur_state(state::OUTRO);
 			break;
 
 		default:
