@@ -432,4 +432,20 @@ void draw_quad(const gl::texture *tex, const quad& verts, const quad& texcoords,
 	g_render_queue->add_quad(tex, verts, texcoords, layer);
 }
 
+void draw_quad(const gl::texture *tex, const quad& verts, int layer)
+{
+	const float u = static_cast<float>(tex->get_image_width())/tex->get_texture_width();
+	const float v = static_cast<float>(tex->get_image_height())/tex->get_texture_height();
+
+	g_render_queue->add_quad(tex, verts, { { 0, v }, { 0, 0 }, { u, v }, { u, 0 } }, layer);
+}
+
+void draw_quad(const gl::texture *tex, const vec2f& pos, int layer)
+{
+	const int w = tex->get_image_width();
+	const int h = tex->get_image_height();
+
+	draw_quad(tex, { { pos.x, pos.y }, { pos.x, pos.y + h }, { pos.x + w, pos.y }, { pos.x + w, pos.y + h } }, layer);
+}
+
 }

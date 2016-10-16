@@ -1,8 +1,5 @@
 TODO/FEATURES
-* renderer: use shaders
 * better font borders
-* shader program: json file
-* song background image
 * draw spectrum bars above lyrics
 * transition effect from song menu to game
 * song highscore

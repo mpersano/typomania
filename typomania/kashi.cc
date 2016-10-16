@@ -58,7 +58,7 @@ kashi::load(const char *path)
 	}
 
 	std::vector<char *> tokens = split(line, "\t\n");
-	if (tokens.size() != 4) {
+	if (tokens.size() < 4) {
 		fclose(in);
 		return false;
 	}
@@ -68,6 +68,9 @@ kashi::load(const char *path)
 	genre = utf8_to_wchar(tokens[2]);
 
 	stream = tokens[3];
+
+	if (tokens.size() > 4)
+		background = tokens[4];
 
 	while (fgets(line, sizeof(line), in)) {
 		std::vector<char *> tokens = split(line, "\t\n");

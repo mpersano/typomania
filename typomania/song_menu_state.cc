@@ -173,18 +173,7 @@ song_menu_state::draw_background() const
 {
 	render::set_blend_mode(blend_mode::NO_BLEND);
 	render::set_color({ 1, 1, 1, 1 });
-
-	const int w = bg_texture_->get_image_width();
-	const int h = bg_texture_->get_image_height();
-
-	const float u = static_cast<float>(bg_texture_->get_image_width())/bg_texture_->get_texture_width();
-	const float v = static_cast<float>(bg_texture_->get_image_height())/bg_texture_->get_texture_height();
-
-	render::draw_quad(
-			bg_texture_,
-			{ { 0, 0 }, { 0, h }, { w, 0 }, { w, h } },
-			{ { 0, v }, { 0, 0 }, { u, v }, { u, 0 } },
-			-20);
+	render::draw_quad(bg_texture_, { 0, 0 }, -20);
 }
 
 void

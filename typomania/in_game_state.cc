@@ -202,7 +202,12 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , small_font(get_font("data/fonts/small_font.fnt"))
 , medium_font(get_font("data/fonts/medium_font.fnt"))
 , big_az_font(get_font("data/fonts/big_az_font.fnt"))
+, bg_texture_(nullptr)
+, bg_overlay_texture_(get_texture("data/images/bg-overlay.png"))
 {
+	if (!cur_kashi.background.empty())
+		bg_texture_ = get_texture(cur_kashi.background);
+
 	glyph_fxs_reset();
 
 	std::ostringstream path;
@@ -230,6 +235,8 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
+	draw_background();
+
 	draw_song_info();
 
 	switch (cur_state) {
@@ -431,14 +438,10 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
 
 	render::set_color({ 1, 1, 1, alpha });
-	render::draw_quad(
-			{ { x0, y0 }, { x0, y1 }, { xm, y0 }, { xm, y1 } },
-			0);
+	render::draw_quad({ { x0, y0 }, { x0, y1 }, { xm, y0 }, { xm, y1 } }, 0);
 
-	render::set_color({ .5, .5, .5, alpha });
-	render::draw_quad(
-			{ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } },
-			0);
+	render::set_color({ 1, 1, 1, .25f*alpha });
+	render::draw_quad({ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } }, 0);
 }
 
 void
@@ -544,6 +547,7 @@ in_game_state::draw_input_buffer(float alpha) const
 	const font::glyph *small_glyph = small_font->find_glyph(L'X');
 	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
 
+	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 	render::set_color({ 1, 1, 1, alpha });
 
 	bool is_first = true;
@@ -649,6 +653,20 @@ in_game_state::get_class() const
 		return L"AAA";
 	else
 		return L"S";
+}
+
+void
+in_game_state::draw_background() const
+{
+	if (bg_texture_) {
+		render::set_color({ 1, 1, 1, 1 });
+
+		render::set_blend_mode(blend_mode::NO_BLEND);
+		render::draw_quad(bg_texture_, { 0, 0 }, -30);
+
+		render::set_blend_mode(blend_mode::ALPHA_BLEND);
+		render::draw_quad(bg_overlay_texture_, { 0, 0 }, -30);
+	}
 }
 
 void

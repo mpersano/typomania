@@ -42,5 +42,7 @@ void set_color(const rgba& color);
 
 void draw_quad(const quad& verts, int layer);
 void draw_quad(const gl::texture *tex, const quad& verts, const quad& texcoords, int layer);
+void draw_quad(const gl::texture *tex, const quad& verts, int layer);
+void draw_quad(const gl::texture *tex, const vec2f& pos, int layer);
 
 }

@@ -164,6 +164,7 @@ public:
 	int level;
 
 	std::string stream;
+	std::string background;
 
 private:
 	void init_level();
