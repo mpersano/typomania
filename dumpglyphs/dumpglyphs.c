@@ -90,6 +90,7 @@ static int can_transpose;
 static int can_pack;
 static int use_gradient;
 static int drop_shadows;
+static int add_outlines;
 static int drop_shadow_dist;
 static int glyph_border_size = 4;
 
@@ -215,49 +216,51 @@ init_glyph(struct glyph *g, int code, FT_Face face)
 	/* low pass filter on alpha channel */
 
 	src = 0;
-	dest = 1;
 
-	for (n = 0; n < NUM_LOW_PASS_FILTER_PASSES; n++) {
-		p = rgba[dest];
-		q = rgba[src];
+	if (add_outlines) {
+		dest = 1;
 
-		for (i = 0; i < g->height; i++) {
-			for (j = 0; j < g->width; j++) {
-				unsigned v = 0;
-				unsigned *t = q - g->width - 1;
+		for (n = 0; n < NUM_LOW_PASS_FILTER_PASSES; n++) {
+			p = rgba[dest];
+			q = rgba[src];
+
+			for (i = 0; i < g->height; i++) {
+				for (j = 0; j < g->width; j++) {
+					unsigned v = 0;
+					unsigned *t = q - g->width - 1;
 
 #define ACC_ROW { if (j > 0) v += (t[0] >> 24); \
-  v += (t[1] >> 24); if (j < g->width - 1) v += (t[2] >> 24); }
-				if (i > 0)
-					ACC_ROW
-				t += g->width;
+	v += (t[1] >> 24); if (j < g->width - 1) v += (t[2] >> 24); }
+					if (i > 0)
+						ACC_ROW
+					t += g->width;
 
-				ACC_ROW
-				t += g->width;
-
-				if (i < g->height - 1)
 					ACC_ROW
+					t += g->width;
+
+					if (i < g->height - 1)
+						ACC_ROW
 #undef ACC_ROW
+					v /= 9;
 
-				v /= 9;
-
-				*p++ = (*q++ & 0xffffff) | (v << 24);
+					*p++ = (*q++ & 0xffffff) | (v << 24);
+				}
 			}
+
+			src ^= 1;
+			dest ^= 1;
 		}
 
-		src ^= 1;
-		dest ^= 1;
-	}
+		free(rgba[dest]);
 
-	free(rgba[dest]);
+		/* enhance */
 
-	/* enhance */
-
-	for (p = rgba[src]; p != &rgba[src][g->width*g->height]; p++) {
-		unsigned v = (*p >> 24) << 3;
-		if (v > 0xff)
-			v = 0xff;
-		*p = (*p & 0xffffff) | (v << 24);
+		for (p = rgba[src]; p != &rgba[src][g->width*g->height]; p++) {
+			unsigned v = (*p >> 24) << 3;
+			if (v > 0xff)
+				v = 0xff;
+			*p = (*p & 0xffffff) | (v << 24);
+		}
 	}
 
 	if (drop_shadows) {
@@ -687,6 +690,7 @@ usage(char *argv0)
 	fprintf(stderr, "  -f  foreground color, in hex\n");
 	fprintf(stderr, "  -b  background color, in hex\n");
 	fprintf(stderr, "  -p  texture path prefix\n");
+	fprintf(stderr, "  -o  outline\n");
 
 	exit(1);
 }
@@ -702,10 +706,11 @@ main(int argc, char *argv[])
 	can_transpose = 1;
 	can_pack = 1;
 	drop_shadows = 0;
+	add_outlines = 0;
 	bg_color = 0x00000000;
 	fg_color = 0x00ffffff;
 
-	while ((c = getopt(argc, argv, "S:s:e:I:W:H:g:htdb:f:p:")) != EOF) {
+	while ((c = getopt(argc, argv, "S:s:e:I:W:H:g:htdb:f:p:o")) != EOF) {
 		char *after;
 
 		switch (c) {
@@ -765,6 +770,10 @@ main(int argc, char *argv[])
 
 			case 'p':
 				strncpy(texture_path_prefix, optarg, sizeof texture_path_prefix);
+				break;
+
+			case 'o':
+				add_outlines = 1;
 				break;
 
 			case 'h':

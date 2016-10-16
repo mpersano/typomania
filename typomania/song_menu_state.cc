@@ -88,7 +88,7 @@ menu_item::render(float pos) const
 
 	// draw text
 
-	render::set_color({ 1, 1, 1, bg_color.a });
+	render::set_color({ 0, 0, .25, bg_color.a });
 
 	render::push_matrix();
 

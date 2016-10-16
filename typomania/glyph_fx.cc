@@ -2,15 +2,17 @@
 
 #include <SDL.h>
 
+#include "resources.h"
 #include "render.h"
 #include "glyph_fx.h"
 
 glyph_fx::glyph_fx(const font *f, wchar_t ch, const vec2f& p)
-: texture_(f->get_texture())
-, gi_(f->find_glyph(ch))
-, x_(p.x + gi_->left + .5*gi_->width)
-, y_(p.y + gi_->top - .5*gi_->height)
-, tics_(0)
+	: texture_(f->get_texture())
+	, program_(get_program("data/shaders/glyphfx.prog"))
+	, gi_(f->find_glyph(ch))
+	, x_(p.x + gi_->left + .5*gi_->width)
+	, y_(p.y + gi_->top - .5*gi_->height)
+	, tics_(0)
 {
 }
 
@@ -39,6 +41,7 @@ glyph_fx::draw() const
 		const float yo = f*.5*gi_->height;
 
 		render::draw_quad(
+			program_,
 			texture_,
 			{ { x_ - xo, y_ + yo }, { x_ - xo, y_ - yo }, { x_ + xo, y_ + yo }, { x_ + xo, y_ - yo } },
 			{ t0, t3, t1, t2 },

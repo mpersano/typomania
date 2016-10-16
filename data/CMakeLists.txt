@@ -19,7 +19,7 @@ macro(gen_font NAME WIDTH HEIGHT SIZE GLYPHS)
     add_custom_command(
         OUTPUT ${FONT_DIR}/${NAME}_font.fnt ${IMAGE_DIR}/${NAME}_font.png
         COMMAND mkdir -p ${FONT_DIR}
-        COMMAND ${DUMPGLYPHS} -W ${WIDTH} -H ${HEIGHT} -S ${SIZE} -I ${NAME} ${FONT} ${GLYPHS}
+        COMMAND ${DUMPGLYPHS} -b ffffff -W ${WIDTH} -H ${HEIGHT} -S ${SIZE} -I ${NAME} ${FONT} ${GLYPHS}
         COMMAND echo -n data/images/ | cat - ${NAME}_font.fnt > ${FONT_DIR}/${NAME}_font.fnt
         COMMAND mv ${NAME}_font.png ${IMAGE_DIR}/${NAME}_font.png
         DEPENDS ${DUMPGLYPHS} ${IMAGE_DIR}/.phony)

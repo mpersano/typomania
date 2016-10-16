@@ -7,6 +7,7 @@
 
 namespace gl {
 class texture;
+class program;
 }
 
 enum class blend_mode { NO_BLEND, ALPHA_BLEND, ADDITIVE_BLEND };
@@ -41,8 +42,14 @@ void set_blend_mode(blend_mode mode);
 void set_color(const rgba& color);
 
 void draw_quad(const quad& verts, int layer);
-void draw_quad(const gl::texture *tex, const quad& verts, const quad& texcoords, int layer);
-void draw_quad(const gl::texture *tex, const quad& verts, int layer);
-void draw_quad(const gl::texture *tex, const vec2f& pos, int layer);
+void draw_quad(const gl::texture *texture, const quad& verts, const quad& texcoords, int layer);
+void draw_quad(const gl::texture *texture, const quad& verts, int layer);
+void draw_quad(const gl::texture *texture, const vec2f& pos, int layer);
+
+void draw_quad(const gl::program *program, const quad& verts, int layer);
+void draw_quad(const gl::program *program, const gl::texture *texture, const quad& verts, const quad& texcoords, int layer);
+void draw_quad(const gl::program *program, const gl::texture *texture, const quad& verts, int layer);
+void draw_quad(const gl::program *program, const gl::texture *texture, const vec2f& pos, int layer);
+
 
 }

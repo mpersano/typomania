@@ -700,7 +700,7 @@ in_game_state::draw_results(int tic) const
 
 #define DRAW_LABEL(f, str) \
 	{ \
-	render::set_color({ 1, 1, 1, LINE_FADE_IN_TIC ? static_cast<float>(tic)/LINE_FADE_IN_TIC : 1 }); \
+	render::set_color({ 1, 1, 1, std::min(static_cast<float>(tic)/LINE_FADE_IN_TIC, 1.f) }); \
 	const font::glyph *g = f->find_glyph(L'X'); \
 	f->draw_string(str, base_x - f->get_string_width(str), base_y + .5*g->height - g->top, 0); \
 	}
