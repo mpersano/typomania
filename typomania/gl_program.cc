@@ -124,24 +124,9 @@ program::use() const
 program::uniform
 program::get_uniform(const std::string& name) const
 {
-	use();
 	GLint location = GL_CHECK_R(glGetUniformLocation(id_, name.c_str()));
-	if (location < 0) {
-		int count;
-		GL_CHECK(glGetProgramiv(id_, GL_ACTIVE_UNIFORMS, &count));
-		for (int i = 0; i < count; i++)
-		{
-			const GLsizei bufsize = 32;
-			GLchar name[bufsize];
-			GLsizei length;
-			GLint size;
-			GLenum type;
-			glGetActiveUniform(id_, (GLuint)i, bufsize, &length, &size, &type, name);
-			printf("Uniform #%d Type: %u Name: %s\n", i, type, name);
-		}
-		fprintf(stderr, "active uniforms: %d\n", count);
+	if (location < 0)
 		panic("invalid uniform %s", name.c_str());
-	}
 	return uniform(location);
 }
 
