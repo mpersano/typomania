@@ -1,3 +1,5 @@
+![screenshot](/screenshot.jpg?raw=true)
+
 Huh?
 ----
 A typing game with Japanese songs, inspired on the Flash game Typing Mania 4 (site seems to be down).
