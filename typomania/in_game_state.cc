@@ -629,15 +629,15 @@ in_game_state::get_correct_percent() const
 {
 	static wchar_t buf[30] = {0};
 
-	if (total_strokes > 0) {
-		if (miss == 0) {
-			wcscpy(buf, L"100%");
-		} else if (miss == total_strokes) {
-			wcscpy(buf, L"0%");
-		} else {
-			const float f = 100.*static_cast<float>(total_strokes - miss)/total_strokes;
-			swprintf(buf, sizeof buf/sizeof *buf, L"%.1f%%", f);
-		}
+	if (total_strokes == 0) {
+		*buf = '\0';
+	} else if (miss == 0) {
+		wcscpy(buf, L"100%");
+	} else if (miss == total_strokes) {
+		wcscpy(buf, L"0%");
+	} else {
+		const float f = 100.*static_cast<float>(total_strokes - miss)/total_strokes;
+		swprintf(buf, sizeof buf/sizeof *buf, L"%.1f%%", f);
 	}
 
 	return buf;
