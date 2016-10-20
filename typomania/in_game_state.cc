@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include <algorithm>
-#include <list>
 
 #include <SDL.h>
 
@@ -31,49 +30,14 @@ enum {
 	RESULTS_START_TIC = 120,
 };
 
-using glyph_fx_queue = std::list<std::unique_ptr<glyph_fx>>;
-static glyph_fx_queue glyph_fxs;
-
-static void
-glyph_fxs_reset()
-{
-	glyph_fxs.empty();
-}
-
-static void
-glyph_fxs_draw()
-{
-	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
-
-	for (auto& p : glyph_fxs)
-		p->draw();
-}
-
-static void
-glyph_fxs_update()
-{
-	for (auto& p : glyph_fxs)
-		p->update();
-
-	while (!glyph_fxs.empty()) {
-		auto& p = glyph_fxs.front();
-
-		if (p->is_active())
-			break;
-
-		glyph_fxs.pop_front();
-	}
-}
-
 class kana_buffer
 {
 public:
-	kana_buffer()
-	: cur_pattern(nullptr)
+	kana_buffer(in_game_state *parent)
+	: parent_(parent)
+	, cur_pattern(nullptr)
 	, num_consumed(0)
 	{ }
-
-	~kana_buffer();
 
 	void set_serifu(const serifu *s);
 
@@ -88,23 +52,23 @@ public:
 	serifu_romaji_iterator get_romaji_iterator() const
 	{ return serifu_romaji_iterator(cur_pattern, kana_iter); }
 
+	using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
+
+	const fx_cont& get_prev_fx() const
+	{ return prev_fx; }
+
 private:
 	int consume_kana();
 	void clear_prev_fx();
 
+	in_game_state *parent_;
 	const pattern_node *cur_pattern;
 	serifu_kana_iterator kana_iter;
 
 	int num_consumed, prev_num_consumed;
 
-	using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
 	fx_cont prev_fx;
 };
-
-kana_buffer::~kana_buffer()
-{
-	clear_prev_fx();
-}
 
 void
 kana_buffer::set_serifu(const serifu *s)
@@ -123,7 +87,7 @@ int
 kana_buffer::consume_kana()
 {
 	for (auto& p : prev_fx)
-		glyph_fxs.push_back(std::move(p));
+		parent_->add_glyph_fx(std::move(p));
 	prev_fx.clear();
 
 	if (*kana_iter) {
@@ -182,8 +146,6 @@ kana_buffer::clear_prev_fx()
 	prev_fx.clear();
 }
 
-static kana_buffer input_buffer;
-
 in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 : game_state(parent)
 , cur_kashi(cur_kashi)
@@ -206,11 +168,10 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , medium_font(get_font("data/fonts/medium_font.fnt"))
 , big_az_font(get_font("data/fonts/big_az_font.fnt"))
 , bg_overlay_texture_(get_texture("data/images/bg-overlay.png"))
+, input_buffer_( new kana_buffer(this))
 , blur_program_(get_program("data/shaders/blur.prog"))
 , title_framebuffers_ { std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)), std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)) }
 {
-	glyph_fxs_reset();
-
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
@@ -302,7 +263,7 @@ in_game_state::update()
 		if (cur_serifu != cur_kashi.end()) {
 			int n = 0;
 
-			for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
+			for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter)
 				++n;
 
 			for (++cur_serifu; cur_serifu != cur_kashi.end(); ++cur_serifu) {
@@ -327,7 +288,7 @@ in_game_state::update()
 			if (serifu_ms >= cur_serifu_duration) {
 				int n = 0;
 
-				for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter)
+				for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter)
 					++n;
 
 				if (n > 0) {
@@ -358,7 +319,7 @@ in_game_state::update()
 	spectrum.update(total_ms);
 #endif
 
-	glyph_fxs_update();
+	update_glyph_fxs();
 }
 
 void
@@ -374,10 +335,10 @@ in_game_state::on_key_down(int keysym)
 #ifndef MUTE
 			player.fade_out(FADE_OUT_TICS);
 #endif
-		} else if (!input_buffer.finished()) {
+		} else if (!input_buffer_->finished()) {
 			++total_strokes;
 
-			if (!input_buffer.on_key_down(keysym)) {
+			if (!input_buffer_->on_key_down(keysym)) {
 				score -= MISS_SCORE;
 				combo = 0;
 				++miss;
@@ -517,9 +478,9 @@ in_game_state::draw_serifu(float alpha) const
 	const serifu *serifu = nullptr;
 	int highlighted;
 
-	if (!input_buffer.finished()) {
+	if (!input_buffer_->finished()) {
 		serifu = cur_serifu->get();
-		highlighted = input_buffer.get_num_consumed();
+		highlighted = input_buffer_->get_num_consumed();
 	} else {
 		kashi::const_iterator next_serifu = cur_serifu + 1;
 
@@ -549,7 +510,7 @@ in_game_state::draw_serifu(float alpha) const
 	render::push_matrix();
 	render::translate(base_x, base_y);
 
-	glyph_fxs_draw();
+	draw_glyph_fxs();
 
 	render::pop_matrix();
 }
@@ -573,7 +534,7 @@ in_game_state::draw_input_buffer(float alpha) const
 
 	float x = base_x;
 
-	for (serifu_romaji_iterator iter = input_buffer.get_romaji_iterator(); *iter; ++iter) {
+	for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter) {
 		const int ch = *iter;
 
 		if (is_first) {
@@ -745,7 +706,7 @@ in_game_state::draw_song_info(float alpha) const
 	render::begin_batch();
 
 	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
-	render::set_color({ alpha, alpha, 0, 1 });
+	render::set_color({ alpha, .65f*alpha, 0, 1 });
 
 	render::draw_quad(title_framebuffers_[0]->get_texture(), { 0, 400 - 256 }, -1);
 
@@ -829,11 +790,42 @@ in_game_state::set_state(state next_state)
 void
 in_game_state::set_cur_serifu(const serifu *s, bool is_last)
 {
-	input_buffer.set_serifu(cur_serifu->get());
+	input_buffer_->set_serifu(cur_serifu->get());
 
 	cur_serifu_duration = (*cur_serifu)->duration;
 #ifndef MUTE
 	if (is_last || cur_serifu_duration > song_duration - total_ms)
 		cur_serifu_duration = song_duration - total_ms;
 #endif
+}
+
+void
+in_game_state::draw_glyph_fxs() const
+{
+	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
+
+	for (auto& p : glyph_fxs_)
+		p->draw();
+}
+
+void
+in_game_state::update_glyph_fxs()
+{
+	for (auto& p : glyph_fxs_)
+		p->update();
+
+	while (!glyph_fxs_.empty()) {
+		auto& p = glyph_fxs_.front();
+
+		if (p->is_active())
+			break;
+
+		glyph_fxs_.pop_front();
+	}
+}
+
+void
+in_game_state::add_glyph_fx(std::unique_ptr<glyph_fx> p)
+{
+	glyph_fxs_.push_back(std::move(p));
 }
