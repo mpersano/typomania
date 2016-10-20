@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "gl_check.h"
 #include "panic.h"
 #include "render.h"
 #include "common.h"
@@ -52,15 +53,15 @@ game::cur_state() const
 void
 game::redraw() const
 {
-	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	GL_CHECK(glViewport(0, 0, window_width_, window_height_));
 
-	render::set_viewport(window_width_, window_height_);
+	GL_CHECK(glClearColor(0, 0, 0, 0));
+	GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+
+	render::set_viewport(0, window_width_, 0, window_height_);
 
 	render::begin_batch();
-
 	cur_state()->redraw();
-
 	render::end_batch();
 }
 

@@ -41,7 +41,7 @@ class render_queue : private noncopyable
 public:
 	render_queue();
 
-	void set_viewport(int width, int height);
+	void set_viewport(int x_min, int x_max, int y_min, int y_max);
 
 	void begin_batch();
 	void end_batch();
@@ -104,13 +104,16 @@ void render_queue::init_programs()
 	prog_texture_ = get_program("data/shaders/sprite.prog");
 }
 
-void render_queue::set_viewport(int width, int height)
+void render_queue::set_viewport(int x_min, int x_max, int y_min, int y_max)
 {
-	const float a = 2.f/width;
-	const float b = 2.f/height;
+	const float a = 2.f/(x_max - x_min);
+	const float b = 2.f/(y_max - y_min);
 
-	proj_matrix_ = { a, 0, 0, -1,
-			 0, b, 0, -1,
+	const float tx = -(x_max + x_min)/(x_max - x_min);
+	const float ty = -(y_max + y_min)/(y_max - y_min);
+
+	proj_matrix_ = { a, 0, 0, tx,
+			 0, b, 0, ty,
 			 0, 0, 0,  0,
 			 0, 0, 0,  1 };
 
@@ -375,9 +378,9 @@ void init()
 	g_render_queue = new render_queue;
 }
 
-void set_viewport(int width, int height)
+void set_viewport(int x_min, int x_max, int y_min, int y_max)
 {
-	g_render_queue->set_viewport(width, height);
+	g_render_queue->set_viewport(x_min, x_max, y_min, y_max);
 }
 
 void begin_batch()

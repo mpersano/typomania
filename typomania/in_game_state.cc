@@ -9,6 +9,8 @@
 
 #include "resources.h"
 #include "render.h"
+#include "gl_check.h"
+#include "gl_framebuffer.h"
 #include "pattern.h"
 #include "kana.h"
 #include "glyph_fx.h"
@@ -204,6 +206,8 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , medium_font(get_font("data/fonts/medium_font.fnt"))
 , big_az_font(get_font("data/fonts/big_az_font.fnt"))
 , bg_overlay_texture_(get_texture("data/images/bg-overlay.png"))
+, blur_program_(get_program("data/shaders/blur.prog"))
+, title_framebuffers_ { std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)), std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)) }
 {
 	glyph_fxs_reset();
 
@@ -687,12 +691,80 @@ in_game_state::draw_background(float alpha) const
 void
 in_game_state::draw_song_info(float alpha) const
 {
+	// TODO: make effects like this a bit less painful
+
+	render::end_batch();
+
+	auto fb_texture = title_framebuffers_[0]->get_texture();
+	const int fb_width = fb_texture->get_texture_width();
+	const int fb_height = fb_texture->get_texture_height();
+
+	// render text to fb0
+
+	title_framebuffers_[0]->bind();
+
+	render::set_viewport(0, fb_width, fb_height, 0);
+	render::begin_batch();
+
+	render::set_blend_mode(blend_mode::NO_BLEND);
+	render::set_color({ 0, 0, 0, 0 });
+	render::draw_quad({ { 0, 0 }, { 0, fb_height}, { fb_width, 0 }, { fb_width, fb_height } }, -1);
+
+	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
+	render::set_color({ 1, 1, 1, 1 });
+
+	draw_song_info_text(1);
+
+	render::end_batch();
+
+	// blur horizontally from fb0 to fb1
+
+	title_framebuffers_[1]->bind();
+
+	render::begin_batch();
+	render::set_color({ 0, 1, 0, 0 });
+	render::draw_quad(blur_program_, title_framebuffers_[0]->get_texture(), { 0, 0 }, 0);
+	render::end_batch();
+
+	// blur vertically from fb1 to fb0
+
+	title_framebuffers_[0]->bind();
+
+	render::begin_batch();
+	render::set_color({ 1, 0, 0, 0 });
+	render::draw_quad(blur_program_, title_framebuffers_[1]->get_texture(), { 0, 0 }, 0);
+	render::end_batch();
+
+	// fb0 to screen
+
+	// HACK!
+	title_framebuffers_[0]->unbind();
+	GL_CHECK(glViewport(0, 0, parent_->get_window_width(), parent_->get_window_height()));
+
+	render::set_viewport(0, parent_->get_window_width(), 0, parent_->get_window_height());
+	render::begin_batch();
+
+	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
+	render::set_color({ alpha, alpha, 0, 1 });
+
+	render::draw_quad(title_framebuffers_[0]->get_texture(), { 0, 400 - 256 }, -1);
+
 	render::set_blend_mode(blend_mode::ALPHA_BLEND);
+
 	render::set_color({ 1, 1, 1, alpha });
 
-	draw_string(medium_font, 30, 320, &cur_kashi.name[0]);
-	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);
-	draw_string(tiny_font, 36, 346, &cur_kashi.artist[0]);
+	render::push_matrix();
+	render::translate(0, 144);
+	draw_song_info_text(alpha);
+	render::pop_matrix();
+}
+
+void
+in_game_state::draw_song_info_text(float alpha) const
+{
+	draw_string(medium_font, 30, 177, &cur_kashi.name[0]);
+	draw_string(tiny_font, 36, 146, &cur_kashi.genre[0]);
+	draw_string(tiny_font, 36, 202, &cur_kashi.artist[0]);
 }
 
 void

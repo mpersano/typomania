@@ -21,7 +21,7 @@ namespace render {
 
 void init();
 
-void set_viewport(int width, int height);
+void set_viewport(int x_min, int x_max, int y_min, int y_max);
 
 void begin_batch();
 void end_batch();

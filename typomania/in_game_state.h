@@ -6,6 +6,7 @@
 
 namespace gl {
 class texture;
+class framebuffer;
 }
 
 class in_game_state : public game_state
@@ -24,6 +25,7 @@ private:
 
 	void draw_background(float alpha) const;
 	void draw_song_info(float alpha) const;
+	void draw_song_info_text(float alpha) const;
 
 	void draw_hud(float alpha) const;
 	void draw_time_bars(float alpha) const;
@@ -77,4 +79,6 @@ private:
 	const font *big_az_font;
 
 	const gl::texture *bg_overlay_texture_;
+	const gl::program *blur_program_;
+	std::array<std::unique_ptr<gl::framebuffer>, 2> title_framebuffers_;
 };

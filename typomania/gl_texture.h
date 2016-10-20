@@ -13,6 +13,7 @@ public:
 	texture();
 	~texture();
 
+	void allocate(int width, int height);
 	bool load(const std::string& path);
 
 	int get_image_width() const
@@ -30,9 +31,13 @@ public:
 	void bind() const;
 
 private:
+	void initialize(const GLvoid *data);
+
 	int image_width_, image_height_;
 	int texture_width_, texture_height_;
 	GLuint id_;
+
+	friend class framebuffer;
 };
 
 } // gl
