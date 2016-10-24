@@ -70,8 +70,15 @@ kashi::load(const char *path)
 
 	stream = tokens[3];
 
-	if (tokens.size() > 4)
-		background = get_texture(tokens[4]);
+	const char *texture_path;
+
+	if (tokens.size() > 4) {
+		texture_path = tokens[4];
+	} else {
+		texture_path = "data/images/aozora.png";
+	}
+
+	background = get_texture(texture_path);
 
 	while (fgets(line, sizeof(line), in)) {
 		std::vector<char *> tokens = split(line, "\t\n");

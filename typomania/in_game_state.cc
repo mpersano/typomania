@@ -28,6 +28,8 @@ enum {
 	FADE_IN_TICS = 60,
 	FADE_OUT_TICS = 60,
 	RESULTS_START_TIC = 120,
+
+	COMBO_BUMP_TICS = 20,
 };
 
 class kana_buffer
@@ -163,6 +165,7 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , max_combo(0)
 , miss(0)
 , total_strokes(0)
+, hit_tics_(0)
 , tiny_font(get_font("data/fonts/tiny_font.fnt"))
 , small_font(get_font("data/fonts/small_font.fnt"))
 , medium_font(get_font("data/fonts/medium_font.fnt"))
@@ -170,8 +173,13 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 , bg_overlay_texture_(get_texture("data/images/bg-overlay.png"))
 , input_buffer_( new kana_buffer(this))
 , blur_program_(get_program("data/shaders/blur.prog"))
-, title_framebuffers_ { std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)), std::unique_ptr<gl::framebuffer>(new gl::framebuffer(256, 256)) }
 {
+	const int w = parent_->get_window_width();
+	const int h = parent_->get_window_height();
+
+	glow_framebuffers_[0].reset(new gl::framebuffer(w, h));
+	glow_framebuffers_[1].reset(new gl::framebuffer(w, h));
+
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
 
@@ -192,61 +200,80 @@ in_game_state::~in_game_state()
 void
 in_game_state::redraw() const
 {
-	switch (cur_state) {
-		case INTRO:
-			{
-			float alpha = static_cast<float>(state_tics)/FADE_IN_TICS;
-			draw_background(alpha);
-			draw_song_info(alpha);
-			draw_hud(alpha);
-			}
-			break;
+	float alpha;
 
-		case PLAYING:
-			draw_background(1);
-			draw_song_info(1);
-			draw_hud(1);
-			break;
+	if (cur_state == INTRO)
+		alpha = static_cast<float>(state_tics)/FADE_IN_TICS;
+	else
+		alpha = 1;
 
-		case OUTRO:
-			draw_background(1);
-			draw_song_info(1);
-			if (state_tics < FADE_OUT_TICS)
-				draw_hud(1. - static_cast<float>(state_tics)/FADE_OUT_TICS);
-			else if (state_tics >= RESULTS_START_TIC)
-				draw_results(state_tics - RESULTS_START_TIC);
-			break;
+	draw_background(alpha);
 
-		default:
-			assert(0);
-	}
+	bind_glow_layer();
+	draw_hud(true);
+	draw_glow_layer();
+
+	draw_hud(false);
 }
 
 void
-in_game_state::draw_hud(float alpha) const
+in_game_state::draw_hud(bool glow_layer) const
 {
 	render::set_blend_mode(blend_mode::ALPHA_BLEND);
 
+	float alpha;
+
+	switch (cur_state) {
+		case INTRO:
+			alpha = static_cast<float>(state_tics)/FADE_IN_TICS;
+			break;
+
+		case OUTRO:
+			alpha = 1. - static_cast<float>(state_tics)/FADE_OUT_TICS;
+			break;
+
+		default:
+			alpha = 1;
+	}
+
+	render::set_color({ 1, 1, 1, cur_state == INTRO ? alpha : 1 });
+	draw_song_info();
+
+	if (cur_state != OUTRO || state_tics < FADE_OUT_TICS) {
+		draw_time_bars(alpha, glow_layer);
+
+		render::set_color({ 1, 1, 1, alpha });
+		draw_hud_counters(glow_layer);
+
+		if (!glow_layer) {
+			draw_timers();
+			draw_input_buffer();
+
+			draw_serifu(alpha);
+
 #ifndef MUTE
-	render::push_matrix();
-	render::translate(22, 60);
-	render::set_color({ 1, 1, 1, .1f*alpha });
-	spectrum.draw();
-	render::pop_matrix();
+			render::push_matrix();
+			render::translate(22, 60);
+			render::set_blend_mode(blend_mode::ALPHA_BLEND);
+			render::set_color({ 1, 1, 1, .1f*alpha });
+			spectrum.draw();
+			render::pop_matrix();
 #endif
+		}
+	}
 
-	draw_time_bars(alpha);
-	draw_timers(alpha);
-	draw_serifu(alpha);
-
-	draw_input_buffer(alpha);
-	draw_hud_counters(alpha);
+	if (cur_state == OUTRO && state_tics >= RESULTS_START_TIC) {
+		draw_results(state_tics - RESULTS_START_TIC, glow_layer);
+	}
 }
 
 void
 in_game_state::update()
 {
 	++state_tics;
+
+	if (hit_tics_ > 0)
+		--hit_tics_;
 
 	if (cur_state == INTRO) {
 		if (state_tics == FADE_IN_TICS) {
@@ -346,6 +373,7 @@ in_game_state::on_key_down(int keysym)
 				score += HIT_SCORE;
 				if (++combo > max_combo)
 					max_combo = combo;
+				hit_tics_ = COMBO_BUMP_TICS;
 			}
 		}
 	} else if (cur_state == OUTRO) {
@@ -403,7 +431,7 @@ draw_string(const font *f, float x, float y, const wchar_t *str)
 }
 
 void
-in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total, float alpha) const
+in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int total, float alpha, bool glow_layer) const
 {
 	const float x = 120;
 	const float w = parent_->get_window_width() - x - 8;
@@ -412,36 +440,32 @@ in_game_state::draw_time_bar(float y, const wchar_t *label, int partial, int tot
 	const float x0 = x, x1 = x + w, xm = x0 + (x1 - x0)*partial/total;
 	const float y0 = y - .5*h, y1 = y + .5*h;
 
-	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-	render::set_color({ 1, 1, 1, alpha });
-
-	draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
-
 	render::set_color({ 1, 1, 1, alpha });
 	render::draw_quad({ { x0, y0 }, { x0, y1 }, { xm, y0 }, { xm, y1 } }, 0);
 
-	render::set_color({ 1, 1, 1, .25f*alpha });
-	render::draw_quad({ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } }, 0);
+	if (!glow_layer) {
+		draw_string(tiny_font, x - tiny_font->get_string_width(label) - 8, y, label);
+
+		render::set_color({ 1, 1, 1, .25f*alpha });
+		render::draw_quad({ { xm, y0 }, { xm, y1 }, { x1, y0 }, { x1, y1 } }, 0);
+	}
 }
 
 void
-in_game_state::draw_time_bars(float alpha) const
+in_game_state::draw_time_bars(float alpha, bool glow_layer) const
 {
 	if (cur_serifu == cur_kashi.end())
 		return;
 
-	draw_time_bar(170, L"INTERVAL", serifu_ms, cur_serifu_duration, alpha);
+	draw_time_bar(170, L"INTERVAL", serifu_ms, cur_serifu_duration, alpha, glow_layer);
 #ifndef MUTE
-	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration, alpha);
+	draw_time_bar(190, L"TOTAL TIME", total_ms, song_duration, alpha, glow_layer);
 #endif
 }
 
 void
-in_game_state::draw_timers(float alpha) const
+in_game_state::draw_timers() const
 {
-	render::set_color({ 1, 1, 1, alpha });
-	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-
 	const font *f = tiny_font;
 	const int dx = f->find_glyph(L'0')->advance_x;
 
@@ -516,7 +540,7 @@ in_game_state::draw_serifu(float alpha) const
 }
 
 void
-in_game_state::draw_input_buffer(float alpha) const
+in_game_state::draw_input_buffer() const
 {
 	const float base_y = 30;
 	const float base_x = 20;
@@ -526,9 +550,6 @@ in_game_state::draw_input_buffer(float alpha) const
 
 	const font::glyph *small_glyph = small_font->find_glyph(L'X');
 	const float small_y = base_y + .5*small_glyph->height - small_glyph->top;
-
-	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-	render::set_color({ 1, 1, 1, alpha });
 
 	bool is_first = true;
 
@@ -549,44 +570,43 @@ in_game_state::draw_input_buffer(float alpha) const
 	}
 }
 
-float
-in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, bool zero_padded, int num_digits, int value) const
-{
-	draw_string(tiny_font, x, y, label);
-	x += tiny_font->get_string_width(label) + small_font->find_glyph(L'0')->advance_x*num_digits;
-	draw_integer(small_font, x, y, zero_padded, num_digits, value);
-
-	return x;
-}
-
-float
-in_game_state::draw_hud_counter(float x, float y, const wchar_t *label, const wchar_t *value) const
-{
-	draw_string(tiny_font, x, y, label);
-	x += tiny_font->get_string_width(label) + small_font->find_glyph(L'0')->advance_x;
-	draw_string(small_font, x, y, value);
-
-	return x;
-}
-
 void
-in_game_state::draw_hud_counters(float alpha) const
+in_game_state::draw_hud_counters(bool glow_layer) const
 {
-	const float base_y = 140;
+	const int base_y = 140;
 
-	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-	render::set_color({ 1, 1, 1, alpha });
+	if (combo > 1) {
+		render::push_matrix();
+		render::translate(50, base_y);
 
-	if (combo) {
-		draw_integer(small_font, 40, base_y, false, 0, combo);
-		draw_string(tiny_font, 60, base_y, L"COMBO");
+		draw_string(tiny_font, 10, 0, L"COMBO");
+
+		if (hit_tics_ > 0) {
+			float t = static_cast<float>(hit_tics_)/COMBO_BUMP_TICS;
+			render::scale(1. + .5*t*t);
+		}
+
+		draw_integer(small_font, -10, 0, false, 0, combo);
+
+		render::pop_matrix();
 	}
 
-	float x = 140;
-	x = draw_hud_counter(x, base_y, L"SCORE", false, 7, display_score) + 50;
-	x = draw_hud_counter(x, base_y, L"MAX COMBO", true, 3, max_combo) + 50;
-	x = draw_hud_counter(x, base_y, L"MISS", true, 3, miss) + 50;
-	draw_hud_counter(x, base_y, L"CORRECT", get_correct_percent());
+	float base_x = 140;
+
+	if (!glow_layer) {
+		draw_string(tiny_font, 140, base_y, L"SCORE");
+
+		draw_string(tiny_font, 316, base_y, L"MAX COMBO");
+		draw_integer(small_font, 418, base_y, false, 3, max_combo);
+
+		draw_string(tiny_font, 520, base_y, L"MISS");
+		draw_integer(small_font, 587, base_y, false, 3, miss);
+
+		draw_string(tiny_font, 637, base_y, L"CORRECT");
+		draw_string(small_font, 699, base_y, get_correct_percent());
+	}
+
+	draw_integer(small_font, 266, base_y, false, 7, display_score);
 }
 
 const wchar_t *
@@ -645,91 +665,83 @@ in_game_state::draw_background(float alpha) const
 		render::draw_quad(cur_kashi.background, { 0, 0 }, -30);
 
 		render::set_blend_mode(blend_mode::ALPHA_BLEND);
-		render::draw_quad(bg_overlay_texture_, { 0, 0 }, -30);
+		render::draw_quad(bg_overlay_texture_, { 0, 0 }, -25);
 	}
 }
 
 void
-in_game_state::draw_song_info(float alpha) const
+in_game_state::bind_glow_layer() const
 {
-	// TODO: make effects like this a bit less painful
-
 	render::end_batch();
 
-	auto fb_texture = title_framebuffers_[0]->get_texture();
+	auto fb_texture = glow_framebuffers_[0]->get_texture();
+
 	const int fb_width = fb_texture->get_texture_width();
 	const int fb_height = fb_texture->get_texture_height();
 
-	// render text to fb0
+	glow_framebuffers_[0]->bind();
 
-	title_framebuffers_[0]->bind();
-
-	render::set_viewport(0, fb_width, fb_height, 0);
+	render::set_viewport(0, parent_->get_window_width(), parent_->get_window_height(), 0);
 	render::begin_batch();
 
 	render::set_blend_mode(blend_mode::NO_BLEND);
 	render::set_color({ 0, 0, 0, 0 });
-	render::draw_quad({ { 0, 0 }, { 0, fb_height}, { fb_width, 0 }, { fb_width, fb_height } }, -1);
+	render::draw_quad({ { 0, 0 }, { 0, fb_height }, { fb_width, 0 }, { fb_width, fb_height } }, -1);
+}
 
-	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
-	render::set_color({ 1, 1, 1, 1 });
-
-	draw_song_info_text(1);
-
+void
+in_game_state::draw_glow_layer() const
+{
 	render::end_batch();
 
 	// blur horizontally from fb0 to fb1
 
-	title_framebuffers_[1]->bind();
+	auto fb_texture = glow_framebuffers_[0]->get_texture();
+	const int fb_width = fb_texture->get_texture_width();
+	const int fb_height = fb_texture->get_texture_height();
+
+	glow_framebuffers_[1]->bind();
 
 	render::begin_batch();
-	render::set_color({ 0, 1, 0, 0 });
-	render::draw_quad(blur_program_, title_framebuffers_[0]->get_texture(), { 0, 0 }, 0);
+	render::set_color({ 0, 1.f/fb_height, 0, 0 });
+	render::draw_quad(blur_program_, glow_framebuffers_[0]->get_texture(), { 0, 0 }, 0);
 	render::end_batch();
 
 	// blur vertically from fb1 to fb0
 
-	title_framebuffers_[0]->bind();
+	glow_framebuffers_[0]->bind();
 
 	render::begin_batch();
-	render::set_color({ 1, 0, 0, 0 });
-	render::draw_quad(blur_program_, title_framebuffers_[1]->get_texture(), { 0, 0 }, 0);
+	render::set_color({ 1.f/fb_width, 0, 0, 0 });
+	render::draw_quad(blur_program_, glow_framebuffers_[1]->get_texture(), { 0, 0 }, 0);
 	render::end_batch();
 
 	// fb0 to screen
 
 	// HACK!
-	title_framebuffers_[0]->unbind();
+	glow_framebuffers_[0]->unbind();
 	GL_CHECK(glViewport(0, 0, parent_->get_window_width(), parent_->get_window_height()));
 
 	render::set_viewport(0, parent_->get_window_width(), 0, parent_->get_window_height());
+
+	// render the result
+
 	render::begin_batch();
-
 	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
-	render::set_color({ alpha, .65f*alpha, 0, 1 });
-
-	render::draw_quad(title_framebuffers_[0]->get_texture(), { 0, 400 - 256 }, -1);
-
-	render::set_blend_mode(blend_mode::ALPHA_BLEND);
-
-	render::set_color({ 1, 1, 1, alpha });
-
-	render::push_matrix();
-	render::translate(0, 144);
-	draw_song_info_text(alpha);
-	render::pop_matrix();
+	render::set_color({ 1, .61f, 0, 1 });
+	render::draw_quad(glow_framebuffers_[0]->get_texture(), { 0, 0 }, -20);
 }
 
 void
-in_game_state::draw_song_info_text(float alpha) const
+in_game_state::draw_song_info() const
 {
-	draw_string(medium_font, 30, 177, &cur_kashi.name[0]);
-	draw_string(tiny_font, 36, 146, &cur_kashi.genre[0]);
-	draw_string(tiny_font, 36, 202, &cur_kashi.artist[0]);
+	draw_string(medium_font, 30, 322, &cur_kashi.name[0]);
+	draw_string(tiny_font, 36, 290, &cur_kashi.genre[0]);
+	draw_string(tiny_font, 36, 346, &cur_kashi.artist[0]);
 }
 
 void
-in_game_state::draw_results(int tic) const
+in_game_state::draw_results(int tic, bool glow_layer) const
 {
 	enum {
 		LINE_FADE_IN_TIC = 20,
@@ -744,7 +756,7 @@ in_game_state::draw_results(int tic) const
 	float base_y = 320;
 
 #define DRAW_LABEL(f, str) \
-	{ \
+	if (!glow_layer) { \
 	render::set_color({ 1, 1, 1, std::min(static_cast<float>(tic)/LINE_FADE_IN_TIC, 1.f) }); \
 	const font::glyph *g = f->find_glyph(L'X'); \
 	f->draw_string(str, base_x - f->get_string_width(str), base_y + .5*g->height - g->top, 0); \
