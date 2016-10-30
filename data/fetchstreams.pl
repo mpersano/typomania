@@ -2,6 +2,8 @@
 
 use strict;
 
+my $fmt = 18;
+
 mkdir 'streams';
 
 for (<DATA>) {
@@ -10,15 +12,14 @@ for (<DATA>) {
 	my $ogg = "streams/$title.ogg";
 
 	if (!-f $ogg) {
-		my $video = "$title.3gpp";
+		my $video = "$title.mp4";
 		my $wav = "$title.wav";
 
 		if (!-f $video) {
 			my $url = "https://www.youtube.com/watch?v=$youtube_id";
 
 			# download the crappiest format available to save bandwidth, we only want the audio
-
-			system('youtubedown', '--no-mux', '--fmt', 17, '--title', $title, $url) == 0
+			system('youtubedown', '--no-mux', '--fmt', $fmt, '--title', $title, $url) == 0
 				or die "youtubedown failed: $?";
 		}
 
@@ -46,3 +47,5 @@ kexAkVkwYs0	0	lion
 gfZh80kZm3g	0	allegro
 zneEthgiDls	3.828	sugarrush
 ystEbjp-yzM	0	takeoff
+ONto8dpB9Us	0	corepride
+ABaGWVxeZ6g	0	northerncross

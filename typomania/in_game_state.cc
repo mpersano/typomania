@@ -93,7 +93,18 @@ kana_buffer::consume_kana()
 	prev_fx.clear();
 
 	if (*kana_iter) {
-		if ((cur_pattern = kana_to_pattern::find_pair(kana_iter[0], kana_iter[1]))) {
+		if ((cur_pattern = kana::find_pattern(kana_iter[0], kana_iter[1], kana_iter[2]))) {
+			kana_iter.get_glyph_fx(prev_fx);
+			++kana_iter;
+
+			kana_iter.get_glyph_fx(prev_fx);
+			++kana_iter;
+
+			kana_iter.get_glyph_fx(prev_fx);
+			++kana_iter;
+
+			return 3;
+		} else if ((cur_pattern = kana::find_pattern(kana_iter[0], kana_iter[1]))) {
 			kana_iter.get_glyph_fx(prev_fx);
 			++kana_iter;
 
@@ -101,7 +112,7 @@ kana_buffer::consume_kana()
 			++kana_iter;
 
 			return 2;
-		} else if ((cur_pattern = kana_to_pattern::find_single(*kana_iter))) {
+		} else if ((cur_pattern = kana::find_pattern(*kana_iter))) {
 			kana_iter.get_glyph_fx(prev_fx);
 			++kana_iter;
 
@@ -234,6 +245,7 @@ in_game_state::draw_hud(bool glow_layer) const
 
 		default:
 			alpha = 1;
+			break;
 	}
 
 	render::set_color({ 1, 1, 1, cur_state == INTRO ? alpha : 1 });

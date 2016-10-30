@@ -383,6 +383,7 @@ serifu_kana_iterator::get_glyph_fx(fx_cont& fx_list) const
 
 serifu_romaji_iterator::serifu_romaji_iterator(const serifu *s)
 : kana(s)
+, cur_pattern(nullptr)
 {
 	consume_kana();
 	skip_optional_pattern();
@@ -421,10 +422,14 @@ serifu_romaji_iterator::next()
 void
 serifu_romaji_iterator::consume_kana()
 {
-	if ((cur_pattern = kana_to_pattern::find_pair(kana[0], kana[1]))) {
+	if ((cur_pattern = kana::find_pattern(kana[0], kana[1], kana[2]))) {
 		++kana;
 		++kana;
-	} else if ((cur_pattern = kana_to_pattern::find_single(*kana))) {
+		++kana;
+	} else if ((cur_pattern = kana::find_pattern(kana[0], kana[1]))) {
+		++kana;
+		++kana;
+	} else if ((cur_pattern = kana::find_pattern(kana[0]))) {
 		++kana;
 	}
 }
