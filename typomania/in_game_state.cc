@@ -51,8 +51,8 @@ public:
 	int get_num_consumed() const
 	{ return prev_num_consumed; }
 
-	serifu_romaji_iterator get_romaji_iterator() const
-	{ return serifu_romaji_iterator(cur_pattern, kana_iter); }
+	serifu::romaji_iterator get_romaji_iterator() const
+	{ return serifu::romaji_iterator(kana_iter_, cur_pattern); }
 
 	using fx_cont = std::vector<std::unique_ptr<glyph_fx>>;
 
@@ -65,7 +65,7 @@ private:
 
 	in_game_state *parent_;
 	const pattern_node *cur_pattern;
-	serifu_kana_iterator kana_iter;
+	serifu::kana_iterator kana_iter_, kana_end_;
 
 	int num_consumed, prev_num_consumed;
 
@@ -77,9 +77,10 @@ kana_buffer::set_serifu(const serifu *s)
 {
 	clear_prev_fx();
 
-	cur_pattern = 0;
+	cur_pattern = nullptr;
 
-	kana_iter = serifu_kana_iterator(s);
+	kana_iter_ = s->kana_begin();
+	kana_end_ = s->kana_end();
 
 	prev_num_consumed = 0;
 	num_consumed = consume_kana();
@@ -92,29 +93,29 @@ kana_buffer::consume_kana()
 		parent_->add_glyph_fx(std::move(p));
 	prev_fx.clear();
 
-	if (*kana_iter) {
-		if ((cur_pattern = kana::find_pattern(kana_iter[0], kana_iter[1], kana_iter[2]))) {
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+	if (kana_iter_ != kana_end_) {
+		if ((cur_pattern = kana::find_pattern(kana_iter_[0], kana_iter_[1], kana_iter_[2]))) {
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
 			return 3;
-		} else if ((cur_pattern = kana::find_pattern(kana_iter[0], kana_iter[1]))) {
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+		} else if ((cur_pattern = kana::find_pattern(kana_iter_[0], kana_iter_[1]))) {
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
 			return 2;
-		} else if ((cur_pattern = kana::find_pattern(*kana_iter))) {
-			kana_iter.get_glyph_fx(prev_fx);
-			++kana_iter;
+		} else if ((cur_pattern = kana::find_pattern(*kana_iter_))) {
+			kana_iter_.get_glyph_fx(prev_fx);
+			++kana_iter_;
 
 			return 1;
 		}
@@ -300,14 +301,10 @@ in_game_state::update()
 
 	if (cur_state == OUTRO && state_tics == FADE_OUT_TICS) {
 		if (cur_serifu != cur_kashi.end()) {
-			int n = 0;
-
-			for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter)
-				++n;
+			int n = std::distance(input_buffer_->get_romaji_iterator(), (*cur_serifu)->romaji_end());
 
 			for (++cur_serifu; cur_serifu != cur_kashi.end(); ++cur_serifu) {
-				for (serifu_romaji_iterator iter(cur_serifu->get()); *iter; ++iter)
-					++n;
+				n += std::distance((*cur_serifu)->romaji_begin(), (*cur_serifu)->romaji_end());
 			}
 
 			miss += n;
@@ -325,10 +322,7 @@ in_game_state::update()
 
 		if (cur_state == PLAYING) {
 			if (serifu_ms >= cur_serifu_duration) {
-				int n = 0;
-
-				for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter)
-					++n;
+				int n = std::distance(input_buffer_->get_romaji_iterator(), (*cur_serifu)->romaji_end());
 
 				if (n > 0) {
 					miss += n;
@@ -567,7 +561,7 @@ in_game_state::draw_input_buffer() const
 
 	float x = base_x;
 
-	for (serifu_romaji_iterator iter = input_buffer_->get_romaji_iterator(); *iter; ++iter) {
+	for (auto iter = input_buffer_->get_romaji_iterator(); *iter; ++iter) {
 		const int ch = *iter;
 
 		if (is_first) {
@@ -816,7 +810,7 @@ in_game_state::set_cur_serifu(const serifu *s, bool is_last)
 {
 	input_buffer_->set_serifu(cur_serifu->get());
 
-	cur_serifu_duration = (*cur_serifu)->duration;
+	cur_serifu_duration = (*cur_serifu)->duration();
 #ifndef MUTE
 	if (is_last || cur_serifu_duration > song_duration - total_ms)
 		cur_serifu_duration = song_duration - total_ms;

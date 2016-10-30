@@ -70,78 +70,80 @@ struct serifu_furigana_part : serifu_part
 	const font *furigana_font;
 };
 
+struct pattern_node;
+
 struct serifu
 {
-	serifu(int duration)
-	: duration(duration)
-	{ }
-
-	virtual ~serifu();
+public:
+	serifu(int duration);
 
 	bool parse(const wstring& text);
 
 	void draw(int num_highlighted, const rgba color[2]) const;
 
-	using section_cont = std::vector<serifu_part_ptr>;
-	using iterator = section_cont::iterator;
-	using const_iterator = section_cont::const_iterator;
+	int duration() const;
 
-	iterator begin() { return section_list.begin(); }
-	iterator end() { return section_list.end(); }
+	class kana_iterator : public std::iterator<std::forward_iterator_tag, wchar_t>
+	{
+	public:
+		kana_iterator();
+		kana_iterator(const std::vector<serifu_part_ptr>::const_iterator& it, const std::vector<serifu_part_ptr>::const_iterator& end);
 
-	const_iterator begin() const { return section_list.begin(); }
-	const_iterator end() const { return section_list.end(); }
+		wchar_t operator*() const;
+		wchar_t operator[](int index) const;
 
-	int duration;
-	section_cont section_list;
+		bool operator!=(const kana_iterator& other) const;
+
+		kana_iterator& operator++();
+
+		void get_glyph_fx(fx_cont& fx_list) const;
+
+	private:
+		void next();
+		void skip_non_kana();
+		wchar_t cur_kana() const;
+
+		std::vector<serifu_part_ptr>::const_iterator iter_, end_;
+		size_t cur_part_index_;
+		float base_x_;
+	};
+
+	kana_iterator kana_begin() const;
+	kana_iterator kana_end() const;
+
+	struct romaji_iterator : public std::iterator<std::forward_iterator_tag, char>
+	{
+	public:
+		romaji_iterator(const kana_iterator& kana_it);
+		romaji_iterator(const kana_iterator& kana_it, const pattern_node *cur_pattern);
+
+		char operator*() const;
+
+		bool operator!=(const romaji_iterator& other) const;
+
+		romaji_iterator& operator++();
+
+	private:
+		void next();
+		void skip_optional_pattern();
+		void consume_kana();
+
+		serifu::kana_iterator kana_it_;
+		const pattern_node *cur_pattern_;
+	};
+
+	romaji_iterator romaji_begin() const;
+	romaji_iterator romaji_end() const;
+
+private:
+	int duration_;
+	std::vector<serifu_part_ptr> section_list;
+
+	friend class kana_iterator;
 };
 
 using serifu_ptr = std::unique_ptr<serifu>;
 
-class serifu_kana_iterator
-{
-public:
-	serifu_kana_iterator() { }
-	serifu_kana_iterator(const serifu *s);
-
-	wchar_t operator*() const;
-	wchar_t operator[](int index) const;
-
-	serifu_kana_iterator& operator++();
-
-	void get_glyph_fx(fx_cont& fx_list) const;
-
-private:
-	void next();
-	void skip_non_kana();
-	wchar_t cur_kana() const;
-
-	serifu::const_iterator iter, end;
-	size_t cur_part_index;
-	float base_x;
-};
-
-struct pattern_node;
-
-struct serifu_romaji_iterator
-{
-public:
-	serifu_romaji_iterator() { }
-	serifu_romaji_iterator(const serifu *s);
-	serifu_romaji_iterator(const pattern_node *cur_pattern, const serifu_kana_iterator& kana);
-
-	serifu_romaji_iterator& operator++();
-
-	char operator*() const;
-
-private:
-	void next();
-	void skip_optional_pattern();
-	void consume_kana();
-
-	serifu_kana_iterator kana;
-	const pattern_node *cur_pattern;
-};
 
 class kashi : private noncopyable
 {
