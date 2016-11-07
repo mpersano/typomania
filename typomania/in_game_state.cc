@@ -189,8 +189,8 @@ in_game_state::in_game_state(game *parent, const kashi& cur_kashi)
 	const int w = parent_->get_window_width();
 	const int h = parent_->get_window_height();
 
-	glow_framebuffers_[0].reset(new gl::framebuffer(w, h));
-	glow_framebuffers_[1].reset(new gl::framebuffer(w, h));
+	glow_framebuffers_[0].reset(new gl::framebuffer(w/2, h/2));
+	glow_framebuffers_[1].reset(new gl::framebuffer(w/2, h/2));
 
 	std::ostringstream path;
 	path << STREAM_DIR << '/' << cur_kashi.stream;
@@ -678,6 +678,9 @@ in_game_state::draw_background(float alpha) const
 void
 in_game_state::bind_glow_layer() const
 {
+	const int width = parent_->get_window_width();
+	const int height = parent_->get_window_height();
+
 	render::end_batch();
 
 	auto fb_texture = glow_framebuffers_[0]->get_texture();
@@ -687,17 +690,20 @@ in_game_state::bind_glow_layer() const
 
 	glow_framebuffers_[0]->bind();
 
-	render::set_viewport(0, parent_->get_window_width(), parent_->get_window_height(), 0);
+	render::set_viewport(0, width, height, 0);
 	render::begin_batch();
 
 	render::set_blend_mode(blend_mode::NO_BLEND);
 	render::set_color({ 0, 0, 0, 0 });
-	render::draw_quad({ { 0, 0 }, { 0, fb_height }, { fb_width, 0 }, { fb_width, fb_height } }, -1);
+	render::draw_quad({ { 0, 0 }, { 0, height }, { width, 0 }, { width, height } }, -1);
 }
 
 void
 in_game_state::draw_glow_layer() const
 {
+	const int width = parent_->get_window_width();
+	const int height = parent_->get_window_height();
+
 	render::end_batch();
 
 	// blur horizontally from fb0 to fb1
@@ -710,7 +716,7 @@ in_game_state::draw_glow_layer() const
 
 	render::begin_batch();
 	render::set_color({ 0, 1.f/fb_height, 0, 0 });
-	render::draw_quad(blur_program_, glow_framebuffers_[0]->get_texture(), { 0, 0 }, 0);
+	render::draw_quad(blur_program_, glow_framebuffers_[0]->get_texture(), { { 0, 0 }, { 0, height }, { width, 0 }, { width, height } }, 0);
 	render::end_batch();
 
 	// blur vertically from fb1 to fb0
@@ -719,23 +725,23 @@ in_game_state::draw_glow_layer() const
 
 	render::begin_batch();
 	render::set_color({ 1.f/fb_width, 0, 0, 0 });
-	render::draw_quad(blur_program_, glow_framebuffers_[1]->get_texture(), { 0, 0 }, 0);
+	render::draw_quad(blur_program_, glow_framebuffers_[1]->get_texture(), { { 0, 0 }, { 0, height }, { width, 0 }, { width, height } }, 0);
 	render::end_batch();
 
 	// fb0 to screen
 
 	// HACK!
 	glow_framebuffers_[0]->unbind();
-	GL_CHECK(glViewport(0, 0, parent_->get_window_width(), parent_->get_window_height()));
+	GL_CHECK(glViewport(0, 0, width, height));
 
-	render::set_viewport(0, parent_->get_window_width(), 0, parent_->get_window_height());
+	render::set_viewport(0, width, 0, height);
 
 	// render the result
 
 	render::begin_batch();
 	render::set_blend_mode(blend_mode::ADDITIVE_BLEND);
 	render::set_color({ 1, .61f, 0, 1 });
-	render::draw_quad(glow_framebuffers_[0]->get_texture(), { 0, 0 }, -20);
+	render::draw_quad(glow_framebuffers_[0]->get_texture(), { { 0, 0 }, { 0, height }, { width, 0 }, { width, height } }, -20);
 }
 
 void
