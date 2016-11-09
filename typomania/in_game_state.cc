@@ -94,31 +94,16 @@ kana_buffer::consume_kana()
 	prev_fx.clear();
 
 	if (kana_iter_ != kana_end_) {
-		if ((cur_pattern = kana::find_pattern(kana_iter_[0], kana_iter_[1], kana_iter_[2]))) {
+		int consumed;
+
+		std::tie(cur_pattern, consumed) = kana::find_pattern(kana_iter_);
+
+		for (int i = 0; i < consumed; i++) {
 			kana_iter_.get_glyph_fx(prev_fx);
 			++kana_iter_;
-
-			kana_iter_.get_glyph_fx(prev_fx);
-			++kana_iter_;
-
-			kana_iter_.get_glyph_fx(prev_fx);
-			++kana_iter_;
-
-			return 3;
-		} else if ((cur_pattern = kana::find_pattern(kana_iter_[0], kana_iter_[1]))) {
-			kana_iter_.get_glyph_fx(prev_fx);
-			++kana_iter_;
-
-			kana_iter_.get_glyph_fx(prev_fx);
-			++kana_iter_;
-
-			return 2;
-		} else if ((cur_pattern = kana::find_pattern(*kana_iter_))) {
-			kana_iter_.get_glyph_fx(prev_fx);
-			++kana_iter_;
-
-			return 1;
 		}
+
+		return consumed;
 	}
 
 	return 0;

@@ -1,3 +1,6 @@
+#include <map>
+#include <memory>
+
 #include "pattern.h"
 #include "kana.h"
 
@@ -133,8 +136,6 @@ kana_to_pattern::kana_to_pattern()
 		kana_triple_to_pattern_[std::make_tuple(hira_to_kata(p.first[0]), hira_to_kata(p.first[1]), hira_to_kata(p.first[2]))] = pattern;
 	}
 
-	printf("%lu %lu %lu\n", kana_to_pattern_.size(), kana_pair_to_pattern_.size(), kana_triple_to_pattern_.size());
-
 }
 
 kana_to_pattern&
@@ -155,7 +156,6 @@ const pattern_node *
 kana_to_pattern::find_pattern(wchar_t kana0, wchar_t kana1)
 {
 	auto it = kana_pair_to_pattern_.find(std::make_pair(kana0, kana1));
-// printf("%d %d -> %p\n", kana0, kana1, it != kana_pair_to_pattern_.end() ? it->second.get() : nullptr);
 	return it != kana_pair_to_pattern_.end() ? it->second.get() : nullptr;
 }
 
@@ -163,7 +163,6 @@ const pattern_node *
 kana_to_pattern::find_pattern(wchar_t kana)
 {
 	auto it = kana_to_pattern_.find(kana);
-// printf("%d -> %p\n", kana, it != kana_to_pattern_.end() ? it->second.get() : nullptr);
 	return it != kana_to_pattern_.end() ? it->second.get() : nullptr;
 }
 

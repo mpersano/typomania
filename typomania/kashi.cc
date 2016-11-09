@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <codecvt>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
@@ -51,9 +52,11 @@ kashi::load(const std::string& path)
 	if (tokens.size() < 4)
 		return false;
 
-	name = utf8_to_wchar(tokens[0].c_str());
-	artist = utf8_to_wchar(tokens[1].c_str());
-	genre = utf8_to_wchar(tokens[2].c_str());
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> utf8conv;
+
+	name = utf8conv.from_bytes(tokens[0]); // utf8_to_wchar(tokens[0].c_str());
+	artist = utf8conv.from_bytes(tokens[1]);
+	genre = utf8conv.from_bytes(tokens[2]);
 	stream = tokens[3];
 
 	std::string texture_path;
@@ -72,7 +75,7 @@ kashi::load(const std::string& path)
 			return false;
 
 		serifu_ptr p(new serifu(boost::lexical_cast<int>(tokens[0])));
-		p->parse(utf8_to_wchar(tokens[1].c_str()));
+		p->parse(utf8conv.from_bytes(tokens[1]));
 
 		serifu_list.push_back(std::move(p));
 	}
@@ -107,7 +110,7 @@ serifu::serifu(int duration)
 { }
 
 bool
-serifu::parse(const wstring& text)
+serifu::parse(const std::wstring& text)
 {
 	enum state {
 		NONE,
@@ -119,9 +122,7 @@ serifu::parse(const wstring& text)
 
 	serifu_part_ptr cur_part;
 
-	for (const wchar_t *p = &text[0]; *p; p++) {
-		wchar_t ch = *p;
-
+	for (wchar_t ch : text) {
 		if (ch == '(') {
 			if (cur_state == KANJI || cur_state == FURIGANA)
 				return false;
@@ -209,7 +210,7 @@ serifu::romaji_end() const
 }
 
 int
-serifu_part::draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const
+serifu_part::draw_kana(const font *f, float x, float y, const std::wstring& kana, int num_highlighted, const rgba color[2]) const
 {
 	size_t len = 0;
 
@@ -339,14 +340,6 @@ serifu::kana_iterator::operator!=(const kana_iterator& other) const
 	return iter_ != other.iter_ || cur_part_index_ != other.cur_part_index_;
 }
 
-wchar_t
-serifu::kana_iterator::operator[](int index) const
-{
-	serifu::kana_iterator it = *this;
-	std::advance(it, index);
-	return *it;
-}
-
 serifu::kana_iterator&
 serifu::kana_iterator::operator++()
 {
@@ -371,7 +364,7 @@ wchar_t
 serifu::kana_iterator::cur_kana() const
 {
 	if (iter_ != end_) {
-		const wstring& cur_kana = (*iter_)->get_kana();
+		const std::wstring& cur_kana = (*iter_)->get_kana();
 		return cur_kana[cur_part_index_];
 	} else {
 		return L'\0';
@@ -444,13 +437,9 @@ serifu::romaji_iterator::next()
 void
 serifu::romaji_iterator::consume_kana()
 {
-	if ((cur_pattern_ = kana::find_pattern(*kana_it_, kana_it_[1], kana_it_[2]))) {
-		std::advance(kana_it_, 3);
-	} else if ((cur_pattern_ = kana::find_pattern(*kana_it_, kana_it_[1]))) {
-		std::advance(kana_it_, 2);
-	} else if ((cur_pattern_ = kana::find_pattern(*kana_it_))) {
-		++kana_it_;
-	}
+	int consumed;
+	std::tie(cur_pattern_, consumed) = kana::find_pattern(kana_it_);
+	std::advance(kana_it_, consumed);
 }
 
 void

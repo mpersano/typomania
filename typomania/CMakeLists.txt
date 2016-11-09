@@ -38,8 +38,7 @@ set(TYPOMANIA_SOURCES
 	panic.cc
 	pattern.cc
 	song_menu_state.cc
-	spectrum_bars.cc
-	utf8.cc)
+	spectrum_bars.cc)
 
 add_executable(typomania ${TYPOMANIA_SOURCES})
 

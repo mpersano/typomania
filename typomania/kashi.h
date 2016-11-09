@@ -7,7 +7,6 @@
 #include "noncopyable.h"
 #include "rgba.h"
 #include "vec2.h"
-#include "utf8.h"
 
 struct font;
 struct glyph_fx;
@@ -23,12 +22,12 @@ struct serifu_part
 	serifu_part() { }
 	virtual ~serifu_part() { }
 
-	virtual const wstring& get_kana() const = 0;
+	virtual const std::wstring& get_kana() const = 0;
 	virtual int get_width() const = 0;
 	virtual int draw(int num_highlighted, const rgba color[2]) const = 0;
 	virtual void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const = 0;
 
-	int draw_kana(const font *f, float x, float y, const wstring& kana, int num_highlighted, const rgba color[2]) const;
+	int draw_kana(const font *f, float x, float y, const std::wstring& kana, int num_highlighted, const rgba color[2]) const;
 };
 
 using serifu_part_ptr = std::unique_ptr<serifu_part>;
@@ -37,7 +36,7 @@ struct serifu_kana_part : serifu_part
 {
 	serifu_kana_part();
 
-	const wstring& get_kana() const override
+	const std::wstring& get_kana() const override
 	{ return kana; }
 
 	int get_width() const override;
@@ -46,7 +45,7 @@ struct serifu_kana_part : serifu_part
 
 	void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const override;
 
-	wstring kana;
+	std::wstring kana;
 	const font *kana_font;
 };
 
@@ -54,7 +53,7 @@ struct serifu_furigana_part : serifu_part
 {
 	serifu_furigana_part();
 
-	const wstring& get_kana() const override
+	const std::wstring& get_kana() const override
 	{ return furigana; }
 
 	int get_width() const override;
@@ -63,8 +62,8 @@ struct serifu_furigana_part : serifu_part
 
 	void get_kana_glyph_fx(size_t index, const vec2f& offset, fx_cont& cont) const override;
 
-	wstring kanji;
-	wstring furigana;
+	std::wstring kanji;
+	std::wstring furigana;
 
 	const font *kanji_font;
 	const font *furigana_font;
@@ -77,7 +76,7 @@ struct serifu
 public:
 	serifu(int duration);
 
-	bool parse(const wstring& text);
+	bool parse(const std::wstring& text);
 
 	void draw(int num_highlighted, const rgba color[2]) const;
 
@@ -90,7 +89,6 @@ public:
 		kana_iterator(const std::vector<serifu_part_ptr>::const_iterator& it, const std::vector<serifu_part_ptr>::const_iterator& end);
 
 		wchar_t operator*() const;
-		wchar_t operator[](int index) const;
 
 		bool operator!=(const kana_iterator& other) const;
 
@@ -163,9 +161,9 @@ public:
 	const_iterator begin() const { return serifu_list.begin(); }
 	const_iterator end() const { return serifu_list.end(); }
 
-	wstring name;
-	wstring artist;
-	wstring genre;
+	std::wstring name;
+	std::wstring artist;
+	std::wstring genre;
 
 	int level;
 
