@@ -151,7 +151,7 @@ public:
 	kashi();
 	~kashi();
 
-	bool load(const char *path);
+	bool load(const std::string& path);
 
 	using serifu_cont = std::vector<serifu_ptr>;
 	using iterator = serifu_cont::iterator;

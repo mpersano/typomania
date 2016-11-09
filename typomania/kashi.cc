@@ -1,8 +1,10 @@
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <cerrno>
 #include <cassert>
+
+#include <iostream>
+#include <fstream>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "panic.h"
 #include "resources.h"
@@ -24,17 +26,6 @@ is_kana(wchar_t ch)
 	  || (ch >= '0' && ch <= '9') || (ch >= L'０' && ch <= L'９');
 }
 
-static std::vector<char *>
-split(char *str, const char *delim)
-{
-	std::vector<char *> tokens;
-
-	for (char *p = strtok(str, delim); p; p = strtok(0, delim))
-		tokens.push_back(p);
-
-	return tokens;
-}
-
 kashi::kashi()
 	: background(nullptr)
 { }
@@ -44,34 +35,28 @@ kashi::~kashi()
 }
 
 bool
-kashi::load(const char *path)
+kashi::load(const std::string& path)
 {
-	FILE *in;
-
-	if ((in = fopen(path, "r")) == 0)
+	std::ifstream file(path);
+	if (!file)
 		return false;
 
-	char line[512];
-
-	if (!fgets(line, sizeof(line), in)) {
-		fclose(in);
+	std::string line;
+	if (!std::getline(file, line))
 		return false;
-	}
 
-	std::vector<char *> tokens = split(line, "\t\n");
-	if (tokens.size() < 4) {
-		fclose(in);
+	std::vector<std::string> tokens;
+	auto is_tab = [](char ch) { return ch == '\t'; };
+	boost::split(tokens, line, is_tab, boost::token_compress_on);
+	if (tokens.size() < 4)
 		return false;
-	}
 
-	name = utf8_to_wchar(tokens[0]);
-	artist = utf8_to_wchar(tokens[1]);
-	genre = utf8_to_wchar(tokens[2]);
-
+	name = utf8_to_wchar(tokens[0].c_str());
+	artist = utf8_to_wchar(tokens[1].c_str());
+	genre = utf8_to_wchar(tokens[2].c_str());
 	stream = tokens[3];
 
-	const char *texture_path;
-
+	std::string texture_path;
 	if (tokens.size() > 4) {
 		texture_path = tokens[4];
 	} else {
@@ -80,19 +65,17 @@ kashi::load(const char *path)
 
 	background = get_texture(texture_path);
 
-	while (fgets(line, sizeof(line), in)) {
-		std::vector<char *> tokens = split(line, "\t\n");
-		if (tokens.size() != 2) {
-			fclose(in);
+	while (std::getline(file, line)) {
+		std::vector<std::string> tokens;
+		boost::split(tokens, line, is_tab, boost::token_compress_on);
+		if (tokens.size() != 2)
 			return false;
-		}
 
-		serifu_ptr p(new serifu(atoi(tokens[0])));
-		p->parse(utf8_to_wchar(tokens[1]));
+		serifu_ptr p(new serifu(boost::lexical_cast<int>(tokens[0])));
+		p->parse(utf8_to_wchar(tokens[1].c_str()));
+
 		serifu_list.push_back(std::move(p));
 	}
-
-	fclose(in);
 
 	init_level();
 
@@ -119,11 +102,11 @@ kashi::init_level()
 		level = 99;
 }
 
-	serifu::serifu(int duration)
-: duration_(duration)
+serifu::serifu(int duration)
+	: duration_(duration)
 { }
 
-	bool
+bool
 serifu::parse(const wstring& text)
 {
 	enum state {

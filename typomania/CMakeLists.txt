@@ -7,6 +7,7 @@ find_package(OggVorbis REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(PNG REQUIRED)
 find_package(JsonCpp REQUIRED)
+find_package(Boost REQUIRED)
 
 include_directories(
 	${SDL_INCLUDE_DIR}
@@ -15,7 +16,8 @@ include_directories(
 	${OGG_INCLUDE_DIR}
 	${OPENAL_INCLUDE_DIR}
 	${PNG_INCLUDE_DIRS}
-	${JsonCpp_INCLUDE_DIR})
+	${JsonCpp_INCLUDE_DIR}
+	${Boost_INCLUDE_DIRS})
 
 set(TYPOMANIA_SOURCES
 	fft.cc
@@ -51,7 +53,8 @@ target_link_libraries(
 	${VORBISFILE_LIBRARY}
 	${OPENAL_LIBRARY}
 	${PNG_LIBRARIES}
-	${JsonCpp_LIBRARY})
+	${JsonCpp_LIBRARY}
+	${Boost_LIBRARIES})
 
 set(DATA_DIR "${CMAKE_BINARY_DIR}/data/data")
 

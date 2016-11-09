@@ -1,8 +1,5 @@
-#include <cstdio>
-#include <cstring>
-#include <cassert>
-#include <cerrno>
-
+#include <fstream>
+#include <sstream>
 #include <memory>
 
 #include "resources.h"
@@ -50,36 +47,36 @@ font::get_string_width(const wchar_t *str, size_t len) const
 bool
 font::load(const std::string& path)
 {
-	FILE *fp;
-
-	if ((fp = fopen(path.c_str(), "rb")) == 0)
+	std::ifstream file(path);
+	if (!file)
 		return false;
 
-	char line[512], texture_path[512];
-
-	if (!fgets(line, sizeof(line), fp) || sscanf(line, "%s\n", texture_path) != 1) {
-		fclose(fp);
+	std::string texture_path;
+	if (!std::getline(file, texture_path))
 		return false;
-	}
 
 	texture_ = ::get_texture(texture_path);
 
-	while (fgets(line, sizeof(line), fp)) {
+	std::string line;
+
+	while (std::getline(file, line)) {
+		std::istringstream ss(line);
+
 		int code;
+		ss >> code;
 
 		glyph_ptr g(new glyph);
 
-		if (sscanf(line, "%d %d %d %d %d %d %d %f %f %f %f %f %f %f %f",
-		  &code, &g->width, &g->height, &g->left, &g->top, &g->advance_x, &g->advance_y,
-		  &g->t0.x, &g->t0.y, &g->t1.x, &g->t1.y, &g->t2.x, &g->t2.y, &g->t3.x, &g->t3.y) != 15) {
-			fclose(fp);
-			return false;
-		}
+		ss >> g->width >> g->height;
+		ss >> g->left >> g->top;
+		ss >> g->advance_x >> g->advance_y;
+		ss >> g->t0.x >> g->t0.y;
+		ss >> g->t1.x >> g->t1.y;
+		ss >> g->t2.x >> g->t2.y;
+		ss >> g->t3.x >> g->t3.y;
 
 		glyph_map[code] = std::move(g);
 	}
-
-	fclose(fp);
 
 	return true;
 }
