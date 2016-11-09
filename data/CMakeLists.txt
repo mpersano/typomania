@@ -30,7 +30,7 @@ execute_process(
     OUTPUT_VARIABLE GLYPH_LIST
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-gen_font(tiny 512 512 10 "${GLYPH_LIST}")
+gen_font(tiny 1024 512 10 "${GLYPH_LIST}")
 gen_font(small 1024 1024 18 "${GLYPH_LIST}")
 gen_font(medium 1024 1024 24 "${GLYPH_LIST}")
 gen_font(big_az 256 256 36 "65-90;48-57;45")
