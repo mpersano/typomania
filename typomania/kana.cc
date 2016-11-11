@@ -56,7 +56,8 @@ kana_to_pattern::kana_to_pattern()
 		  { L'だ', "DA" }, { L'ぢ', "DI" }, { L'づ', "[DZ]U" }, { L'で', "DE" }, { L'ど', "DO" },
 		  { L'ば', "BA" }, { L'び', "BI" }, { L'ぶ', "BU" }, { L'べ', "BE" }, { L'ぼ', "BO" },
 		  { L'ぱ', "PA" }, { L'ぴ', "PI" }, { L'ぷ', "PU" }, { L'ぺ', "PE" }, { L'ぽ', "PO" },
-		  { L'ぁ', "[LX]A"  }, { L'ぃ', "[LX]I"  }, { L'ぅ', "[LX]U"  }, { L'ぇ', "[LX]E"  }, { L'ぉ', "[LX]O"  } };
+		  { L'ぁ', "[LX]A"  }, { L'ぃ', "[LX]I"  }, { L'ぅ', "[LX]U"  }, { L'ぇ', "[LX]E"  }, { L'ぉ', "[LX]O"  },
+		  { L'っ', "[LX]TS?U" } };
 
 	for (auto& p : kana_to_romaji) {
 		std::shared_ptr<pattern_node> pattern(parse_pattern(p.second));
