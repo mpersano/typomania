@@ -59,14 +59,9 @@ std::map<wchar_t, pattern_ptr> init_kana_to_pattern_map()
 
 		map.insert(std::make_pair(i, pattern));
 		map.insert(std::make_pair(half_to_full(i), pattern));
-	}
 
-	for (char i = 'a'; i <= 'z'; i++) {
-		char pattern_str[] { static_cast<char>(i - 'a' + 'A'), '\0' };
-		pattern_ptr pattern(parse_pattern(pattern_str));
-
-		map.insert(std::make_pair(i, pattern));
-		map.insert(std::make_pair(half_to_full(i), pattern));
+		map.insert(std::make_pair(i - 'A' + 'a', pattern));
+		map.insert(std::make_pair(half_to_full(i - 'A' + 'a'), pattern));
 	}
 
 	for (char i = '0'; i <= '9'; i++) {
