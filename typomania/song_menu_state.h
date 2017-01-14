@@ -45,6 +45,9 @@ private:
 
 	int move_tics_;
 
+	int click_sfx_id_;
+	int selection_sfx_id_;
+
 	const gl::texture *arrow_texture_;
 	const gl::texture *bg_texture_;
 	const gl::program *bg_transition_program_;

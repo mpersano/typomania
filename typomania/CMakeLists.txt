@@ -38,7 +38,8 @@ set(TYPOMANIA_SOURCES
 	panic.cc
 	pattern.cc
 	song_menu_state.cc
-	spectrum_bars.cc)
+	spectrum_bars.cc
+	sfx.cc)
 
 add_executable(typomania ${TYPOMANIA_SOURCES})
 

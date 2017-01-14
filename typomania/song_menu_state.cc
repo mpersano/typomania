@@ -6,6 +6,7 @@
 #include "kashi.h"
 #include "font.h"
 #include "gl_program.h"
+#include "sfx.h"
 #include "song_menu_state.h"
 
 namespace {
@@ -163,6 +164,8 @@ song_menu_state::song_menu_state(game *parent, const std::vector<kashi_ptr>& kas
 	, arrow_texture_(get_texture("data/images/arrow.png"))
 	, bg_texture_(get_texture("data/images/menu-background.png"))
 	, bg_transition_program_(get_program("data/shaders/transition.prog"))
+	, click_sfx_id_(sfx::add_effect("data/sfx/click.wav", 8))
+	, selection_sfx_id_(sfx::add_effect("data/sfx/selection.wav", 8))
 {
 	for (auto& p : kashi_list)
 		item_list_.emplace_back(new menu_item(parent_->get_window_width(), parent_->get_window_height(), p.get()));
@@ -262,6 +265,7 @@ song_menu_state::update()
 					--cur_selection_;
 					move_tics_ = FAST_MOVE_TICS;
 					set_cur_state(state::MOVING_UP);
+					sfx::play(click_sfx_id_);
 				} else {
 					set_cur_state(state::IDLE);
 				}
@@ -274,6 +278,7 @@ song_menu_state::update()
 					++cur_selection_;
 					move_tics_ = FAST_MOVE_TICS;
 					set_cur_state(state::MOVING_DOWN);
+					sfx::play(click_sfx_id_);
 				} else {
 					set_cur_state(state::IDLE);
 				}
@@ -309,6 +314,7 @@ song_menu_state::on_key_down(int keysym)
 					--cur_selection_;
 					move_tics_ = START_MOVE_TICS;
 					set_cur_state(state::MOVING_UP);
+					sfx::play(click_sfx_id_);
 				}
 			}
 			break;
@@ -319,13 +325,16 @@ song_menu_state::on_key_down(int keysym)
 					++cur_selection_;
 					move_tics_ = START_MOVE_TICS;
 					set_cur_state(state::MOVING_DOWN);
+					sfx::play(click_sfx_id_);
 				}
 			}
 			break;
 
 		case SDLK_RETURN:
-			if (cur_state_ == state::IDLE)
+			if (cur_state_ == state::IDLE) {
 				set_cur_state(state::OUTRO);
+				sfx::play(selection_sfx_id_);
+			}
 			break;
 
 		default:

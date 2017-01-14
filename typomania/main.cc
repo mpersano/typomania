@@ -16,6 +16,7 @@
 
 #include "panic.h"
 #include "render.h"
+#include "sfx.h"
 #include "common.h"
 #include "game.h"
 
@@ -52,6 +53,7 @@ game_app::game_app(int window_width, int window_height)
 	init_openal();
 
 	render::init();
+	sfx::init();
 
 	game_.reset(new game(window_width, window_height));
 }
