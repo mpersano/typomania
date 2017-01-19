@@ -2,18 +2,19 @@
 #include <string>
 #include <memory>
 
+#include <boost/noncopyable.hpp>
+
 #include <SDL.h>
 
 #include <AL/alc.h>
 #include <AL/al.h>
 
 #include "panic.h"
-#include "noncopyable.h"
 #include "sfx.h"
 
 namespace {
 
-class player : public noncopyable
+class player : public boost::noncopyable
 {
 public:
 	player();

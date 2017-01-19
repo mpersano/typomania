@@ -4,7 +4,8 @@
 #include <vector>
 #include <stack>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
+
 #include "kashi.h"
 
 class game;
@@ -24,7 +25,7 @@ protected:
 	game *parent_;
 };
 
-class game : private noncopyable
+class game : private boost::noncopyable
 {
 public:
 	game(int window_width, int window_height);

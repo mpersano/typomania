@@ -3,9 +3,9 @@
 #include <vector>
 #include <string>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
 
-class image : private noncopyable
+class image : private boost::noncopyable
 {
 public:
 	image()

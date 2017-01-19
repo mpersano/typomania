@@ -4,7 +4,8 @@
 #include <string>
 #include <memory>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
+
 #include "rgba.h"
 #include "vec2.h"
 
@@ -143,7 +144,7 @@ private:
 using serifu_ptr = std::unique_ptr<serifu>;
 
 
-class kashi : private noncopyable
+class kashi : private boost::noncopyable
 {
 public:
 	kashi();

@@ -3,11 +3,11 @@
 #include <GL/gl.h>
 #include <string>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
 
 namespace gl {
 
-class texture : private noncopyable
+class texture : private boost::noncopyable
 {
 public:
 	texture();

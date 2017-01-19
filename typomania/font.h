@@ -4,11 +4,12 @@
 #include <memory>
 #include <unordered_map>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
+
 #include "vec2.h"
 #include "gl_texture.h"
 
-class font : private noncopyable
+class font : private boost::noncopyable
 {
 public:
 	bool load(const std::string& path);

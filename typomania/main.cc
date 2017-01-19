@@ -142,17 +142,27 @@ game_app::event_loop()
 {
 	running_ = true;
 
+	const int FRAME_INTERVAL = 1000/TICS_PER_SECOND;
+
+	int last_update = SDL_GetTicks();
+	int update_t = 0;
+
 	while (running_) {
-		int start = SDL_GetTicks();
+		int now = SDL_GetTicks();
+		int dt = now - last_update;
+
+		update_t += dt;
+
+		while (update_t > FRAME_INTERVAL) {
+			game_->update();
+			update_t -= FRAME_INTERVAL;
+		}
 
 		redraw();
 
-		game_->update();
 		handle_events();
 
-		int delay = 1000/TICS_PER_SECOND - (SDL_GetTicks() - start);
-		if (delay > 0)
-			SDL_Delay(delay);
+		last_update = now;
 	}
 }
 

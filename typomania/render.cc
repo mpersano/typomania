@@ -4,6 +4,8 @@
 
 #include <GL/glew.h>
 
+#include <boost/noncopyable.hpp>
+
 #include "resources.h"
 #include "mat3.h"
 #include "gl_check.h"
@@ -36,7 +38,7 @@ void gl_set_blend_mode(blend_mode mode)
 
 namespace render {
 
-class render_queue : private noncopyable
+class render_queue : private boost::noncopyable
 {
 public:
 	render_queue();

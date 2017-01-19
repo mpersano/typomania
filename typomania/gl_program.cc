@@ -16,7 +16,7 @@ namespace gl {
 //   s h a d e r
 //
 
-class shader : private noncopyable
+class shader : private boost::noncopyable
 {
 public:
 	shader(GLenum type);

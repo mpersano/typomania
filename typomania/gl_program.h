@@ -3,13 +3,13 @@
 #include <string>
 #include <GL/gl.h>
 
-#include "noncopyable.h"
+#include <boost/noncopyable.hpp>
 
 namespace gl {
 
 class shader;
 
-class program : private noncopyable
+class program : private boost::noncopyable
 {
 public:
 	program();
