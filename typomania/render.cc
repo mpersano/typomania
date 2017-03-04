@@ -1,6 +1,7 @@
 #include <cassert>
 #include <algorithm>
 #include <stack>
+#include <array>
 
 #include <GL/glew.h>
 
