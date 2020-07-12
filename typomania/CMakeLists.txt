@@ -46,7 +46,7 @@ add_executable(typomania ${TYPOMANIA_SOURCES})
 target_link_libraries(
 	typomania
 	${SDL_LIBRARY}
-	${GLEW_LIBRARY}
+	${GLEW_LIBRARIES}
 	${OPENGL_LIBRARIES}
 	${VORBIS_LIBRARY}
 	${OGG_LIBRARY}
